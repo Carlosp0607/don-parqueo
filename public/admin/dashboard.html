@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Don Parqueo - Inicio</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="../css/dashboard.css" rel="stylesheet">
+<style>
+  .lienzo { max-width:1100px; }
+  .rotulo { font-size:.8rem; color:#8a94a0; letter-spacing:.02em; }
+  .rotulo-mini { font-size:.75rem; color:#8a94a0; text-transform:uppercase; letter-spacing:.04em; }
+  .cifra { font-size:3rem; font-weight:600; line-height:1; letter-spacing:-.02em; }
+  .cifra-sub { font-size:.8rem; color:#adb5bd; margin-top:.35rem; }
+  .separador { border-left:1px solid #e9ecef; }
+  .titulo-seccion { font-size:.9rem; font-weight:600; color:#495057; }
+  .suave { color:#adb5bd; }
+  .placa { font-family:ui-monospace, Menlo, Consolas, monospace; font-weight:600; letter-spacing:.05em; }
+  .punto { width:.5rem; height:.5rem; border-radius:50%; display:inline-block; }
+  .punto.on  { background:#198754; }
+  .punto.off { background:#ced4da; }
+  .vacio { padding:3rem 1rem; text-align:center; color:#adb5bd; }
+  table.limpia { --bs-table-bg:transparent; }
+  table.limpia th {
+    font-weight:500; font-size:.75rem; color:#8a94a0;
+    text-transform:uppercase; letter-spacing:.04em;
+    border-bottom:1px solid #e9ecef; padding-bottom:.5rem;
+  }
+  table.limpia td { padding:.6rem 0; border-bottom:1px solid #f5f6f8; vertical-align:middle; }
+  table.limpia tr:last-child td { border-bottom:0; }
+  .chip { font-size:.8rem; color:#6c757d; }
+  .chip + .chip::before { content:'·'; margin:0 .5rem; color:#dee2e6; }
+
+  .btn-texto {
+    background:none; border:0; padding:0; color:#0d6efd;
+    font-size:.85rem; text-decoration:none;
+  }
+  .btn-texto:disabled { color:#ced4da; }
+
+  .linea-fina { border-top:1px solid #e9ecef; }
+
+  .campo-linea {
+    border:0; border-bottom:1px solid #dee2e6; border-radius:0;
+    box-shadow:none; text-align:right;
+  }
+  .campo-linea:focus { border-bottom-color:#0d6efd; box-shadow:none; }
+
+  .cuadre { font-size:1.25rem; font-weight:600; }
+  .avisos { position:fixed; top:1rem; right:1rem; z-index:1080; width:22rem; max-width:calc(100vw - 2rem); }
+
+  .modal-content { border:0; border-radius:.5rem; }
+  .modal-header, .modal-footer { border-color:#e9ecef; }
+
+  @media (max-width: 767px){
+    .separador { border-left:0; border-top:1px solid #e9ecef; padding-top:1rem; margin-top:1rem; }
+    .cifra { font-size:2.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="avisos" id="avisos"></div>
+
+<div class="sidebar">
+  <div class="sidebar-footer">
+    <a href="#" class="nav-link" id="btnLogout"><i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span></a>
+  </div>
+</div>
+
+<div class="main-content">
+
+  <nav class="navbar navbar-expand-lg navbar-light bg-white">
+    <div class="container-fluid">
+      <button class="btn btn-link sidebar-toggle"><i class="fas fa-bars"></i></button>
+      <span class="ms-2 d-flex align-items-center gap-2 small text-muted">
+        <span class="punto off" id="puntoTurno"></span>
+        <span id="textoTurno">Consultando…</span>
+      </span>
+      <ul class="navbar-nav ms-auto align-items-center">
+        <li class="nav-item me-3">
+          <button class="btn-texto" id="btnTurno" disabled>…</button>
+        </li>
+        <li class="nav-item">
+          <span class="nav-link small"><span id="userName">Usuario</span></span>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container py-5 lienzo">
+
+    <div class="mb-5">
+      <h4 class="mb-1" id="saludo">Hola</h4>
+      <div class="text-muted small" id="fechaHoy"></div>
+      <div class="small text-danger mt-2 d-none" id="avisoTurnoViejo"></div>
+    </div>
+
+    <!-- TRES CIFRAS -->
+    <div class="row mb-5">
+      <div class="col-md-4 mb-4 mb-md-0">
+        <div class="rotulo">Adentro ahora</div>
+        <div class="cifra" id="cAdentro">–</div>
+        <div class="cifra-sub" id="subAdentro">&nbsp;</div>
+      </div>
+      <div class="col-md-4 separador mb-4 mb-md-0">
+        <div class="ps-md-4">
+          <div class="rotulo">Recaudado en el turno</div>
+          <div class="cifra text-success" id="cRecaudo">–</div>
+          <div class="cifra-sub" id="subRecaudo">&nbsp;</div>
+        </div>
+      </div>
+      <div class="col-md-4 separador">
+        <div class="ps-md-4">
+          <div class="rotulo">Debe haber en caja</div>
+          <div class="cifra" id="cCaja">–</div>
+          <div class="cifra-sub" id="subCaja">&nbsp;</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUIÉN ESTÁ ADENTRO -->
+    <div class="mb-2 d-flex align-items-baseline flex-wrap gap-2">
+      <span class="titulo-seccion">Quién está adentro</span>
+      <span class="ms-auto" id="chips"></span>
+    </div>
+
+    <div id="zonaTabla">
+      <div class="vacio">Cargando…</div>
+    </div>
+
+    <div class="text-muted small mt-4" id="pie"></div>
+
+    <!-- TURNOS ANTERIORES -->
+    <div class="pt-5 mt-5 linea-fina">
+      <div class="mb-3 d-flex align-items-baseline flex-wrap gap-3">
+        <span class="titulo-seccion">Turnos anteriores</span>
+        <button class="btn-texto ms-auto" id="btnMasTurnos">Ver más</button>
+      </div>
+      <div id="zonaTurnos">
+        <div class="vacio">Cargando…</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ABRIR TURNO -->
+<div class="modal fade" id="modalAbrir" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header"><h6 class="modal-title">Abrir turno</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="rotulo-mini mb-2">¿Con cuánta plata arranca la caja?</div>
+        <div class="input-group mb-3">
+          <span class="input-group-text">$</span>
+          <input type="number" class="form-control" id="baseInicial" value="50000" min="0" step="1000">
+        </div>
+        <div class="small suave mb-4" id="ecoBase"></div>
+
+        <div class="rotulo-mini mb-1">Nota <span class="text-lowercase">(opcional)</span></div>
+        <input class="form-control form-control-sm" id="obsApertura" maxlength="255" autocomplete="off">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-success" id="btnConfirmarAbrir">Abrir turno</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CERRAR TURNO -->
+<div class="modal fade" id="modalCerrar" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h6 class="modal-title">Cerrar turno</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+
+      <div class="modal-body" id="cuerpoCerrar">
+        <div class="small suave mb-4" id="cabezaCierre"></div>
+
+        <div class="rotulo-mini mb-3">Cuenta la plata y escribe lo que hay</div>
+
+        <table class="table limpia mb-4">
+          <thead>
+            <tr><th>Método</th><th class="text-end">El sistema dice</th><th class="text-end" style="width:9rem">Tú contaste</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Efectivo</td>
+              <td class="text-end suave" id="espEfec">$ 0</td>
+              <td><input type="number" min="0" step="1000" class="form-control form-control-sm campo-linea" id="sumEfec" placeholder="0"></td>
+            </tr>
+            <tr>
+              <td>Tarjeta</td>
+              <td class="text-end suave" id="espCard">$ 0</td>
+              <td><input type="number" min="0" step="1000" class="form-control form-control-sm campo-linea" id="sumCard" placeholder="0"></td>
+            </tr>
+            <tr>
+              <td>
+                Digital
+                <div class="small suave">Nequi, Daviplata, Bre-B, QR, transferencia</div>
+              </td>
+              <td class="text-end suave" id="espQR">$ 0</td>
+              <td><input type="number" min="0" step="1000" class="form-control form-control-sm campo-linea" id="sumQR" placeholder="0"></td>
+            </tr>
+            <tr>
+              <td class="fw-semibold">Total</td>
+              <td class="text-end fw-semibold" id="espTotal">$ 0</td>
+              <td class="text-end fw-semibold" id="sumTotal">$ 0</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="text-center mb-4" id="cuadre"></div>
+
+        <div class="rotulo-mini mb-1">Nota de cierre <span class="text-lowercase">(opcional)</span></div>
+        <input class="form-control form-control-sm" id="obsCierre" maxlength="255" autocomplete="off">
+      </div>
+
+      <!-- Resumen después de cerrar -->
+      <div class="modal-body d-none" id="cuerpoResumen"></div>
+
+      <div class="modal-footer">
+        <button class="btn btn-light" data-bs-dismiss="modal" id="btnCancelarCierre">Cancelar</button>
+        <button class="btn btn-danger" id="btnConfirmarCerrar">Cerrar turno</button>
+        <button class="btn-texto me-3 d-none" id="btnImprimir">Imprimir</button>
+        <button class="btn btn-primary d-none" id="btnListoCierre" data-bs-dismiss="modal">Listo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ============================================================
+   Inicio. Muestra el estado del parqueadero y maneja el turno.
+   El turno vive AQUI. Vehiculos solo registra entradas y salidas.
+   CFG - Rutas de API. Si alguna no coincide, se cambia SOLO aqui.
+   ============================================================ */
+const CFG = {
+  stats       : '/api/dashboard/stats',
+  turnoActual : '/api/turnos/actual',
+  turnoResumen: '/api/turnos/resumen',
+  turnoAbrir  : '/api/turnos/abrir',
+  turnoCerrar : '/api/turnos/cerrar',
+  turnoLista  : '/api/turnos',
+  activos     : '/api/movimientos/activos'
+};
+
+const $ = id => document.getElementById(id);
+
+function pesos(v){
+  return '$ ' + (Math.round(Number(v) || 0)).toLocaleString('es-CO', { maximumFractionDigits:0 });
+}
+function hora(iso){
+  if(!iso) return '-';
+  const d = new Date(iso);
+  return isNaN(d) ? String(iso) : d.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit', hour12:true });
+}
+function fechaCorta(iso){
+  if(!iso) return '-';
+  const d = new Date(iso);
+  if(isNaN(d)) return String(iso);
+  return d.toLocaleDateString('es-CO', { day:'2-digit', month:'short' });
+}
+function esHoy(iso){
+  if(!iso) return false;
+  const d = new Date(iso);
+  if(isNaN(d)) return false;
+  const h = new Date();
+  return d.getFullYear()===h.getFullYear() && d.getMonth()===h.getMonth() && d.getDate()===h.getDate();
+}
+function textoTiempo(desde){
+  if(!desde) return '-';
+  const ms = Date.now() - new Date(desde).getTime();
+  if(ms < 0 || isNaN(ms)) return '-';
+  const min = Math.floor(ms/60000), h = Math.floor(min/60), m = min%60;
+  if(h >= 24){ const d = Math.floor(h/24); return d + (d===1?' día':' días'); }
+  return h ? `${h} h ${m} min` : `${m} min`;
+}
+function escapar(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g,
+    m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function avisar(tipo, texto){
+  const clase = { ok:'success', error:'danger', alerta:'warning' }[tipo] || 'secondary';
+  const el = document.createElement('div');
+  el.className = `alert alert-${clase} alert-dismissible py-2 border-0`;
+  el.innerHTML = `<div class="small">${escapar(texto)}</div>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+  $('avisos').appendChild(el);
+  setTimeout(() => el.remove(), tipo==='error' ? 9000 : 4000);
+}
+
+async function api(url, opciones = {}){
+  const headers = { 'Accept':'application/json', ...(opciones.headers||{}) };
+  if(opciones.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+  const tok = localStorage.getItem('token') || localStorage.getItem('ps_token');
+  if(tok) headers['Authorization'] = 'Bearer ' + tok;
+
+  let res, cuerpo;
+  try{
+    res = await fetch(url, { ...opciones, headers, credentials:'include' });
+    const crudo = await res.text();
+    try { cuerpo = crudo ? JSON.parse(crudo) : {}; } catch { cuerpo = { message: crudo }; }
+  }catch(e){ throw new Error('Sin conexión con el servidor.'); }
+
+  if(!res.ok){
+    console.warn('API', url, res.status, cuerpo);
+    const err = new Error(cuerpo.message || cuerpo.error || ('El servidor respondió ' + res.status));
+    err.status = res.status;
+    throw err;
+  }
+  return cuerpo;
+}
+function lista(r){
+  if(Array.isArray(r)) return r;
+  for(const k of ['data','movimientos','activos','rows','items'])
+    if(Array.isArray(r?.[k])) return r[k];
+  if(r?.data && typeof r.data === 'object')
+    for(const k of ['movimientos','rows','items'])
+      if(Array.isArray(r.data[k])) return r.data[k];
+  return [];
+}
+function campo(o, claves, def=null){
+  for(const k of claves) if(o && o[k] !== undefined && o[k] !== null) return o[k];
+  return def;
+}
+
+/* ---------- saludo ---------- */
+(function(){
+  const d = new Date();
+  const h = d.getHours();
+  $('saludo').textContent = h < 12 ? 'Buenos días' : (h < 19 ? 'Buenas tardes' : 'Buenas noches');
+  $('fechaHoy').textContent = d.toLocaleDateString('es-CO',
+    { weekday:'long', day:'numeric', month:'long' });
+  try{
+    const u = JSON.parse(localStorage.getItem('usuario') || localStorage.getItem('user') || 'null');
+    const n = u && (u.nombre || u.usuario || u.username || u.nombre_usuario);
+    if(n) $('userName').textContent = n;
+  }catch(e){}
+})();
+
+/* ---------- estado ---------- */
+let ABIERTO = false, TURNO = null, ACTIVOS = [];
+let TOTALES = { efectivo:0, tarjeta:0, qr:0, total:0 };
+let TURNOS_LIMITE = 5;
+
+/* El backend devuelve { data: { turno, totales, stats } }.
+   Se lee de ahi directo; antes se buscaba 'total' un nivel mas arriba
+   y el recaudado salia siempre en cero. */
+function leerTotales(r){
+  const t = r?.data?.totales || r?.totales || {};
+  return {
+    efectivo: Number(t.efectivo || 0),
+    tarjeta : Number(t.tarjeta  || 0),
+    qr      : Number(t.qr       || 0),
+    total   : Number(t.total    || 0)
+  };
+}
+
+async function cargar(){
+  // Turno
+  try{
+    const r = await api(CFG.turnoActual);
+    const t = r.data || r.turno || null;
+    ABIERTO = !!(t && (t.id_turno || t.id)) &&
+              String(campo(t,['estado'],'abierto')).toLowerCase() === 'abierto';
+    TURNO = ABIERTO ? t : null;
+  }catch(e){ ABIERTO = false; TURNO = null; }
+
+  TOTALES = { efectivo:0, tarjeta:0, qr:0, total:0 };
+  if(ABIERTO){
+    try{ TOTALES = leerTotales(await api(CFG.turnoResumen)); }catch(e){}
+  }
+
+  // Adentro
+  try{ ACTIVOS = lista(await api(CFG.activos)); }catch(e){ ACTIVOS = []; }
+
+  // Stats
+  let d = {};
+  try{ const s = await api(CFG.stats); d = s?.data || s || {}; }catch(e){}
+
+  pintarBarra();
+  pintarCifras(d);
+  pintarTabla();
+}
+
+function pintarBarra(){
+  const punto = $('puntoTurno'), texto = $('textoTurno'), btn = $('btnTurno');
+  const aviso = $('avisoTurnoViejo');
+
+  if(ABIERTO){
+    const desde = campo(TURNO, ['fecha_apertura','hora_apertura','created_at','fecha_inicio']);
+    punto.className = 'punto on';
+
+    // Un turno de otro dia se ve igual que uno de hoy si solo se muestra la hora.
+    // Cuando no es de hoy se muestra la fecha y se avisa, porque ese turno esta
+    // acumulando el recaudo de varios dias en un solo arqueo.
+    if(esHoy(desde)){
+      texto.textContent = 'Turno abierto desde ' + hora(desde);
+      aviso.classList.add('d-none');
+    }else{
+      texto.textContent = 'Turno abierto desde ' + fechaCorta(desde) + ', ' + hora(desde);
+      aviso.textContent = 'Este turno lleva ' + textoTiempo(desde) +
+        ' abierto. Ciérralo para cuadrar la caja y empezar uno nuevo.';
+      aviso.classList.remove('d-none');
+    }
+
+    btn.textContent = 'Cerrar turno';
+    btn.style.color = '#dc3545';
+  }else{
+    punto.className = 'punto off';
+    texto.textContent = 'Turno cerrado';
+    btn.textContent = 'Abrir turno';
+    btn.style.color = '#198754';
+    aviso.classList.add('d-none');
+  }
+  btn.disabled = false;
+}
+
+function pintarCifras(d){
+  // Adentro
+  $('cAdentro').textContent = ACTIVOS.length;
+  $('subAdentro').textContent = ACTIVOS.length
+    ? ACTIVOS.length + (ACTIVOS.length === 1 ? ' vehículo' : ' vehículos')
+    : 'El parqueadero está vacío';
+
+  // Recaudado del turno abierto
+  if(ABIERTO){
+    $('cRecaudo').textContent = pesos(TOTALES.total);
+    const atend = campo(d, ['movimientos_hoy','tickets','atendidos_hoy','salidas_hoy'], null);
+    $('subRecaudo').textContent = atend
+      ? atend + (atend === 1 ? ' vehículo atendido' : ' vehículos atendidos')
+      : (TOTALES.total ? 'Desde que abrió el turno' : 'Todavía no hay cobros');
+  }else{
+    $('cRecaudo').textContent = '–';
+    $('subRecaudo').textContent = 'No hay turno abierto';
+  }
+
+  // Caja
+  if(ABIERTO){
+    const base = Number(campo(TURNO, ['base_inicial','baseInicial','base'], 0)) || 0;
+    $('cCaja').textContent = pesos(base + TOTALES.total);
+    $('subCaja').textContent = 'Base ' + pesos(base) + ' más lo cobrado';
+  }else{
+    $('cCaja').textContent = '–';
+    $('subCaja').textContent = 'Abre el turno para empezar el día';
+  }
+}
+
+function pintarTabla(){
+  const zona = $('zonaTabla'), chips = $('chips');
+
+  if(!ACTIVOS.length){
+    chips.innerHTML = '';
+    zona.innerHTML = '<div class="vacio">' +
+      (ABIERTO
+        ? 'Nadie ha entrado todavía. Registra la primera entrada en <a href="vehiculos.html">Vehículos</a>.'
+        : 'El turno está cerrado. Ábrelo aquí arriba para empezar el día.') +
+      '</div>';
+    $('pie').textContent = '';
+    return;
+  }
+
+  const cuenta = {};
+  ACTIVOS.forEach(m => {
+    const t = campo(m,['tipo_vehiculo','tipo','nombre_tipo'],'Sin tipo');
+    cuenta[t] = (cuenta[t] || 0) + 1;
+  });
+  chips.innerHTML = Object.keys(cuenta)
+    .sort((a,b) => cuenta[b]-cuenta[a])
+    .map(t => '<span class="chip">' + cuenta[t] + ' ' + escapar(t).toLowerCase() + '</span>')
+    .join('');
+
+  const orden = ACTIVOS.slice().sort((a,b) => {
+    const fa = new Date(campo(a,['fecha_entrada','hora_entrada','entrada','created_at'],0)).getTime() || 0;
+    const fb = new Date(campo(b,['fecha_entrada','hora_entrada','entrada','created_at'],0)).getTime() || 0;
+    return fb - fa;
+  });
+
+  zona.innerHTML =
+    '<table class="table limpia mb-0">' +
+      '<thead><tr><th>Placa</th><th>Tipo</th><th>Entró</th><th class="text-end">Lleva</th></tr></thead>' +
+      '<tbody>' +
+      orden.slice(0, 20).map(m => {
+        const ent = campo(m,['fecha_entrada','hora_entrada','entrada','created_at']);
+        return '<tr>' +
+          '<td class="placa">' + escapar(campo(m,['placa'],'-')).toUpperCase() + '</td>' +
+          '<td class="text-muted">' + escapar(campo(m,['tipo_vehiculo','tipo','nombre_tipo'],'-')) + '</td>' +
+          '<td class="text-muted">' + hora(ent) + '</td>' +
+          '<td class="text-end text-muted">' + textoTiempo(ent) + '</td>' +
+        '</tr>';
+      }).join('') +
+      '</tbody></table>';
+
+  $('pie').textContent = orden.length > 20
+    ? 'Se muestran 20 de ' + orden.length + '. La lista completa está en Vehículos.'
+    : '';
+}
+
+/* ================= TURNOS ANTERIORES ================= */
+async function cargarTurnos(){
+  const zona = $('zonaTurnos');
+  let r;
+  try{
+    r = await api(CFG.turnoLista + '?estado=cerrado&limit=' + TURNOS_LIMITE);
+  }catch(e){
+    zona.innerHTML = '<div class="vacio">No se pudo cargar el historial. ' + escapar(e.message) + '</div>';
+    $('btnMasTurnos').classList.add('d-none');
+    return;
+  }
+
+  const arr = lista(r);
+  if(!arr.length){
+    zona.innerHTML = '<div class="vacio">Todavía no se ha cerrado ningún turno.</div>';
+    $('btnMasTurnos').classList.add('d-none');
+    return;
+  }
+
+  zona.innerHTML =
+    '<table class="table limpia mb-0">' +
+      '<thead><tr>' +
+        '<th>Día</th><th>Abrió</th><th>Cerró</th><th>Quién</th>' +
+        '<th class="text-end">Recaudado</th><th class="text-end">Caja</th>' +
+      '</tr></thead><tbody>' +
+      arr.map(t => {
+        const dif = Number(t.diferencia || 0);
+        let caja, clase;
+        if(Math.abs(dif) < 1){ caja = 'Cuadró'; clase = 'text-success'; }
+        else if(dif > 0){ caja = 'Sobró ' + pesos(dif); clase = 'text-primary'; }
+        else { caja = 'Faltó ' + pesos(Math.abs(dif)); clase = 'text-danger'; }
+
+        return '<tr>' +
+          '<td>' + fechaCorta(t.fecha_apertura) + '</td>' +
+          '<td class="text-muted">' + hora(t.fecha_apertura) + '</td>' +
+          '<td class="text-muted">' + hora(t.fecha_cierre) + '</td>' +
+          '<td class="text-muted">' + escapar(t.usuario || '-') + '</td>' +
+          '<td class="text-end">' + pesos(t.total_general) + '</td>' +
+          '<td class="text-end ' + clase + '">' + caja + '</td>' +
+        '</tr>';
+      }).join('') +
+    '</tbody></table>';
+
+  const total = Number(r?.paginacion?.total || arr.length);
+  $('btnMasTurnos').classList.toggle('d-none', arr.length >= total);
+}
+
+$('btnMasTurnos').addEventListener('click', () => {
+  TURNOS_LIMITE += 10;
+  cargarTurnos();
+});
+
+/* ================= ABRIR TURNO ================= */
+$('btnTurno').addEventListener('click', () => {
+  if(ABIERTO) abrirModalCierre();
+  else bootstrap.Modal.getOrCreateInstance($('modalAbrir')).show();
+});
+
+$('baseInicial').addEventListener('input', function(){
+  $('ecoBase').textContent = this.value ? pesos(this.value) : '';
+});
+$('modalAbrir').addEventListener('shown.bs.modal', () => {
+  $('ecoBase').textContent = pesos($('baseInicial').value);
+  $('baseInicial').select();
+});
+
+$('btnConfirmarAbrir').addEventListener('click', async () => {
+  const btn = $('btnConfirmarAbrir');
+  const base = parseInt(String($('baseInicial').value).replace(/[^\d]/g,''), 10);
+  if(!Number.isFinite(base)) return avisar('alerta','Escribe con cuánta plata arranca la caja.');
+
+  btn.disabled = true; btn.textContent = 'Abriendo…';
+  try{
+    await api(CFG.turnoAbrir, { method:'POST', body: JSON.stringify({
+      base_inicial: base,
+      observacion_apertura: $('obsApertura').value.trim()
+    })});
+    bootstrap.Modal.getInstance($('modalAbrir')).hide();
+    avisar('ok','Turno abierto con ' + pesos(base) + ' en caja.');
+    $('obsApertura').value = '';
+    await cargar();
+  }catch(e){ avisar('error', e.message); }
+  finally{ btn.disabled = false; btn.textContent = 'Abrir turno'; }
+});
+
+/* ================= CERRAR TURNO ================= */
+/* El backend espera el conteo separado por metodo:
+   total_efectivo, total_tarjeta, total_qr. La diferencia la calcula
+   el servidor contra lo que dicen los pagos registrados. */
+async function abrirModalCierre(){
+  $('cuerpoCerrar').classList.remove('d-none');
+  $('cuerpoResumen').classList.add('d-none');
+  $('btnConfirmarCerrar').classList.remove('d-none');
+  $('btnCancelarCierre').classList.remove('d-none');
+  $('btnImprimir').classList.add('d-none');
+  $('btnListoCierre').classList.add('d-none');
+
+  ['sumEfec','sumCard','sumQR'].forEach(id => $(id).value = '');
+  $('obsCierre').value = '';
+  $('cuadre').innerHTML = '';
+
+  const desde = campo(TURNO, ['fecha_apertura'], null);
+  const base = Number(campo(TURNO, ['base_inicial','base'], 0)) || 0;
+  $('cabezaCierre').textContent =
+    'Turno abierto ' + (esHoy(desde) ? 'hoy a las ' + hora(desde)
+                                     : 'el ' + fechaCorta(desde) + ' a las ' + hora(desde)) +
+    ' · base ' + pesos(base);
+
+  bootstrap.Modal.getOrCreateInstance($('modalCerrar')).show();
+
+  // Se vuelve a pedir el resumen para no cerrar con cifras viejas.
+  try{ TOTALES = leerTotales(await api(CFG.turnoResumen)); }catch(e){}
+  $('espEfec').textContent  = pesos(TOTALES.efectivo);
+  $('espCard').textContent  = pesos(TOTALES.tarjeta);
+  $('espQR').textContent    = pesos(TOTALES.qr);
+  $('espTotal').textContent = pesos(TOTALES.total);
+  recalcular();
+}
+
+function recalcular(){
+  const ef = Number($('sumEfec').value || 0);
+  const ta = Number($('sumCard').value || 0);
+  const qr = Number($('sumQR').value || 0);
+  const total = ef + ta + qr;
+
+  $('sumTotal').textContent = pesos(total);
+
+  const vacio = !$('sumEfec').value && !$('sumCard').value && !$('sumQR').value;
+  if(vacio){ $('cuadre').innerHTML = ''; return; }
+
+  const dif = total - TOTALES.total;
+  if(Math.abs(dif) < 1){
+    $('cuadre').innerHTML = '<span class="cuadre text-success">Cuadra exacto</span>';
+  }else if(dif > 0){
+    $('cuadre').innerHTML = '<span class="cuadre text-primary">Sobran ' + pesos(dif) + '</span>';
+  }else{
+    $('cuadre').innerHTML = '<span class="cuadre text-danger">Faltan ' + pesos(Math.abs(dif)) + '</span>';
+  }
+}
+['sumEfec','sumCard','sumQR'].forEach(id => $(id).addEventListener('input', recalcular));
+
+$('btnConfirmarCerrar').addEventListener('click', async () => {
+  const btn = $('btnConfirmarCerrar');
+  const ef = Number($('sumEfec').value || 0);
+  const ta = Number($('sumCard').value || 0);
+  const qr = Number($('sumQR').value || 0);
+
+  btn.disabled = true; btn.textContent = 'Cerrando…';
+  try{
+    const r = await api(CFG.turnoCerrar, { method:'POST', body: JSON.stringify({
+      total_efectivo: ef, total_tarjeta: ta, total_qr: qr,
+      total_general: ef + ta + qr,
+      observacion_cierre: $('obsCierre').value.trim()
+    })});
+    mostrarResumenCierre(r.data || r);
+    await cargar();
+    await cargarTurnos();
+  }catch(e){ avisar('error', e.message); }
+  finally{ btn.disabled = false; btn.textContent = 'Cerrar turno'; }
+});
+
+/* El resumen queda EN PANTALLA y el operador decide si imprime.
+   Si se abriera sola la ventana de impresion y se cancela, el turno ya
+   quedo cerrado en la base y el resumen se pierde sin forma de verlo. */
+function mostrarResumenCierre(d){
+  const exp  = d.expected   || {};
+  const usr  = d.userTotals || {};
+  const dif  = Number(d.diferencia || 0);
+  const base = Number(d.base || 0);
+  const st   = d.stats || {};
+
+  let caja, clase;
+  if(Math.abs(dif) < 1){ caja = 'La caja cuadró exacto'; clase = 'text-success'; }
+  else if(dif > 0){ caja = 'Sobraron ' + pesos(dif); clase = 'text-primary'; }
+  else { caja = 'Faltaron ' + pesos(Math.abs(dif)); clase = 'text-danger'; }
+
+  const porTipo = st.porTipo || {};
+  const chips = Object.keys(porTipo)
+    .map(k => porTipo[k] + ' ' + escapar(k)).join(' · ');
+
+  $('cuerpoResumen').innerHTML =
+    '<div class="text-center mb-4">' +
+      '<div class="rotulo-mini">Turno cerrado</div>' +
+      '<div class="cifra ' + clase + ' mt-2" style="font-size:2rem">' + caja + '</div>' +
+    '</div>' +
+    '<table class="table limpia mb-4">' +
+      '<thead><tr><th>Método</th><th class="text-end">Sistema</th><th class="text-end">Contado</th></tr></thead>' +
+      '<tbody>' +
+        '<tr><td>Efectivo</td><td class="text-end suave">' + pesos(exp.efectivo) + '</td><td class="text-end">' + pesos(usr.efectivo) + '</td></tr>' +
+        '<tr><td>Tarjeta</td><td class="text-end suave">' + pesos(exp.tarjeta) + '</td><td class="text-end">' + pesos(usr.tarjeta) + '</td></tr>' +
+        '<tr><td>Digital</td><td class="text-end suave">' + pesos(exp.qr) + '</td><td class="text-end">' + pesos(usr.qr) + '</td></tr>' +
+        '<tr><td class="fw-semibold">Total</td><td class="text-end fw-semibold suave">' + pesos(exp.total) + '</td><td class="text-end fw-semibold">' + pesos(usr.total) + '</td></tr>' +
+      '</tbody>' +
+    '</table>' +
+    '<div class="small suave text-center">' +
+      'Base ' + pesos(base) +
+      (st.total ? ' · ' + st.total + ' vehículos atendidos' : '') +
+      (chips ? '<br>' + chips : '') +
+    '</div>';
+
+  $('cuerpoCerrar').classList.add('d-none');
+  $('cuerpoResumen').classList.remove('d-none');
+  $('btnConfirmarCerrar').classList.add('d-none');
+  $('btnCancelarCierre').classList.add('d-none');
+  $('btnImprimir').classList.remove('d-none');
+  $('btnListoCierre').classList.remove('d-none');
+
+  $('btnImprimir').onclick = function(){
+    const v = window.open('', '_blank', 'width=420,height=700');
+    const css = '@page{ size:80mm auto; margin:3mm } ' +
+                'body{ width:80mm; font-family:Arial,sans-serif; font-size:11px; margin:0 } ' +
+                '.wrap{ padding:4mm } table{ width:100% } td,th{ padding:2px 0 } ' +
+                'th{ text-align:left; font-size:10px }';
+    v.document.write('<!DOCTYPE html><html><head><meta charset="utf-8">' +
+      '<title>Cierre de turno</title><style>' + css + '</style></head><body><div class="wrap">' +
+      $('cuerpoResumen').innerHTML + '</div><scr' + 'ipt>window.print();' +
+      'setTimeout(function(){window.close();},300);</scr' + 'ipt></body></html>');
+    v.document.close();
+  };
+}
+
+/* ================= ARRANQUE ================= */
+(async function init(){
+  await cargar();
+  await cargarTurnos();
+  setInterval(cargar, 60000);
+})();
+</script>
+<script src="../js/menu.js"></script>
+</body>
+</html>

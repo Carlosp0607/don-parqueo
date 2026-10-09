@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Don Parqueo - Vehículos</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="../css/dashboard.css" rel="stylesheet">
+<style>
+  .lienzo { max-width:1100px; }
+
+  .rotulo { font-size:.75rem; color:#8a94a0; text-transform:uppercase; letter-spacing:.04em; }
+  .titulo-seccion { font-size:.9rem; font-weight:600; color:#495057; }
+  .suave { color:#adb5bd; }
+
+  .punto { width:.5rem; height:.5rem; border-radius:50%; display:inline-block; }
+  .punto.on  { background:#198754; }
+  .punto.off { background:#ced4da; }
+
+  .placa { font-family:ui-monospace, Menlo, Consolas, monospace; font-weight:600; letter-spacing:.05em; }
+  .placa-xl { font-size:1.6rem; letter-spacing:.08em; }
+
+  .cifra { font-size:3rem; font-weight:600; line-height:1; letter-spacing:-.02em; }
+
+  .barra-turno { border-bottom:1px solid #e9ecef; padding:.75rem 0; }
+
+  .tabs-limpias { border:0; gap:1.75rem; }
+  .tabs-limpias .nav-link {
+    border:0; background:none; padding:.35rem 0;
+    color:#8a94a0; font-weight:500; font-size:.9rem;
+  }
+  .tabs-limpias .nav-link:hover { color:#495057; }
+  .tabs-limpias .nav-link.active { color:#212529; box-shadow:inset 0 -2px 0 #0d6efd; }
+
+  .separador { border-left:1px solid #e9ecef; }
+
+  table.limpia { --bs-table-bg:transparent; }
+  table.limpia th {
+    font-weight:500; font-size:.75rem; color:#8a94a0;
+    text-transform:uppercase; letter-spacing:.04em;
+    border-bottom:1px solid #e9ecef; padding:0 0 .5rem 0;
+  }
+  table.limpia td { padding:.65rem 0; border-bottom:1px solid #f5f6f8; vertical-align:middle; }
+  table.limpia tr:last-child td { border-bottom:0; }
+
+  .vacio { padding:2.5rem 1rem; text-align:center; color:#adb5bd; }
+
+  #inPlaca {
+    font-size:1.6rem; height:auto; padding:.4rem .5rem; letter-spacing:.1em;
+    border:0; border-bottom:1px solid #dee2e6; border-radius:0; box-shadow:none;
+  }
+  #inPlaca:focus { border-bottom-color:#0d6efd; box-shadow:none; }
+
+  .filtro-linea {
+    border:0; border-bottom:1px solid #e9ecef; border-radius:0;
+    box-shadow:none; font-size:.85rem; padding-left:0;
+  }
+  .filtro-linea:focus { border-bottom-color:#0d6efd; box-shadow:none; }
+
+  .total-cobro { font-size:2.6rem; font-weight:600; line-height:1.1; letter-spacing:-.02em; }
+  #cobroBox { display:none; }
+
+  .avisos { position:fixed; top:1rem; right:1rem; z-index:1080; width:22rem; max-width:calc(100vw - 2rem); }
+
+  .btn-texto {
+    background:none; border:0; padding:0; color:#0d6efd;
+    font-size:.85rem; text-decoration:none;
+  }
+  .btn-texto:disabled { color:#ced4da; }
+
+  .modal-content { border:0; border-radius:.5rem; }
+  .modal-header, .modal-footer { border-color:#e9ecef; }
+
+  @media (max-width: 991px){
+    .separador { border-left:0; border-top:1px solid #e9ecef; padding-top:1.5rem; margin-top:1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="avisos" id="avisos"></div>
+
+<div class="sidebar">
+  <div class="sidebar-footer">
+    <a href="#" class="nav-link" id="btnLogout"><i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span></a>
+  </div>
+</div>
+
+<div class="main-content">
+
+  <nav class="navbar navbar-expand-lg navbar-light bg-white">
+    <div class="container-fluid">
+      <button class="btn btn-link sidebar-toggle"><i class="fas fa-bars"></i></button>
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <span class="nav-link small"><span id="userName">Usuario</span></span>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container lienzo">
+
+    <!-- ESTADO DEL TURNO (solo lectura; el turno se abre y cierra en Inicio) -->
+    <div class="barra-turno d-flex align-items-center flex-wrap gap-3">
+      <span class="d-flex align-items-center gap-2 small">
+        <span class="punto off" id="puntoTurno"></span>
+        <span id="textoTurno">Consultando…</span>
+      </span>
+      <span class="ms-auto d-flex align-items-center gap-4">
+        <span class="small suave d-none" id="wrapRecaudo">
+          Recaudado <span class="text-success fw-semibold" id="recaudoTurno">$ 0</span>
+        </span>
+      </span>
+    </div>
+
+    <div class="py-4">
+
+      <ul class="nav tabs-limpias mb-4" role="tablist">
+        <li class="nav-item">
+          <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabMovimiento" type="button">
+            Entrada y salida
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabAdentro" type="button">
+            Adentro <span class="suave" id="contActivos">0</span>
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabHistorial" type="button">
+            Historial
+          </button>
+        </li>
+      </ul>
+
+      <div class="tab-content">
+
+        <!-- ENTRADA Y SALIDA -->
+        <div class="tab-pane fade show active" id="tabMovimiento">
+
+          <div id="bloqueoTurno" class="d-none">
+            <div class="vacio">
+              <div class="mb-3">El turno está cerrado. Ábrelo en Inicio para registrar entradas y cobros.</div>
+              <a class="btn btn-success" href="dashboard.html">Ir a Inicio</a>
+            </div>
+          </div>
+
+          <div class="row g-4" id="zonaTrabajo">
+
+            <!-- ENTRADA -->
+            <div class="col-lg-4">
+              <div class="titulo-seccion mb-4">Entra un vehículo</div>
+
+              <div class="rotulo mb-1">Tipo</div>
+              <div class="d-flex align-items-center gap-2 mb-4">
+                <select class="form-select form-select-sm" id="inTipo"></select>
+                <button class="btn-texto text-nowrap" type="button" id="btnNuevoTipo">Nuevo tipo</button>
+              </div>
+
+              <div class="rotulo mb-1">Placa</div>
+              <input class="form-control placa text-uppercase mb-4" id="inPlaca"
+                     maxlength="10" autocomplete="off" placeholder="PLACA">
+
+              <button class="btn btn-primary w-100" id="btnIngresar">Registrar entrada</button>
+            </div>
+
+            <!-- LISTA RÁPIDA -->
+            <div class="col-lg-4 separador">
+              <div class="ps-lg-4">
+                <div class="d-flex align-items-baseline gap-3 mb-3">
+                  <span class="titulo-seccion">Toca para cobrar</span>
+                  <input class="form-control form-control-sm filtro-linea ms-auto" style="max-width:8rem"
+                         id="filtroRapido" placeholder="Buscar placa">
+                </div>
+                <div style="max-height:26rem; overflow:auto">
+                  <table class="table limpia mb-0">
+                    <tbody id="tbodyRapido">
+                      <tr><td class="vacio">Cargando…</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- COBRO -->
+            <div class="col-lg-4 separador">
+              <div class="ps-lg-4">
+                <div class="titulo-seccion mb-4">Sale un vehículo</div>
+
+                <div id="sinSeleccion" class="vacio">
+                  Escoge un vehículo de la lista de al lado.
+                </div>
+
+                <div id="cobroBox">
+                  <div class="placa placa-xl" id="cbPlaca">-</div>
+                  <div class="small suave mb-4" id="cbTiempo">-</div>
+
+                  <div class="rotulo">A cobrar</div>
+                  <div class="total-cobro text-success mb-4" id="cbTotal">$ 0</div>
+
+                  <div class="rotulo mb-1">Cómo paga</div>
+                  <select class="form-select form-select-sm mb-3" id="outMetodo">
+                    <option value="efectivo">Efectivo</option>
+                    <option value="tarjeta">Tarjeta</option>
+                    <option value="nequi">Nequi</option>
+                    <option value="daviplata">Daviplata</option>
+                    <option value="breb">Bre-B</option>
+                    <option value="transferencia">Transferencia</option>
+                    <option value="QR">QR</option>
+                  </select>
+
+                  <!-- Solo aparece si hay QR cargado y el metodo se paga escaneando -->
+                  <div class="mb-4 d-none" id="wrapQR">
+                    <button class="btn-texto" type="button" id="btnMostrarQR">Mostrar QR para que pague</button>
+                  </div>
+
+                  <button class="btn btn-success w-100 mb-3" id="btnFinalizar">Cobrar y dar salida</button>
+                  <div class="text-center">
+                    <button class="btn-texto suave" id="btnCancelar">Cancelar</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ADENTRO -->
+        <div class="tab-pane fade" id="tabAdentro">
+          <div class="d-flex align-items-baseline flex-wrap gap-3 mb-3">
+            <span class="titulo-seccion">Vehículos en el parqueadero</span>
+            <input class="form-control form-control-sm filtro-linea ms-auto" style="max-width:10rem"
+                   id="filtroAdentro" placeholder="Buscar placa">
+            <button class="btn-texto" id="btnRefrescar">Actualizar</button>
+          </div>
+          <table class="table limpia mb-0">
+            <thead>
+              <tr><th>Placa</th><th>Tipo</th><th>Entró</th><th>Lleva</th><th class="text-end">Acción</th></tr>
+            </thead>
+            <tbody id="tbodyAdentro">
+              <tr><td colspan="5" class="vacio">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- HISTORIAL -->
+        <div class="tab-pane fade" id="tabHistorial">
+          <div class="d-flex align-items-baseline flex-wrap gap-3 mb-3">
+            <span class="titulo-seccion">Vehículos que ya salieron</span>
+            <div class="ms-auto d-flex flex-wrap gap-3 align-items-center">
+              <input type="date" class="form-control form-control-sm filtro-linea" id="hDesde" style="max-width:9rem">
+              <input type="date" class="form-control form-control-sm filtro-linea" id="hHasta" style="max-width:9rem">
+              <input class="form-control form-control-sm filtro-linea" id="hPlaca" placeholder="Placa" style="max-width:7rem">
+              <button class="btn-texto" id="btnBuscarHist">Buscar</button>
+            </div>
+          </div>
+
+          <table class="table limpia mb-0">
+            <thead>
+              <tr>
+                <th>Placa</th><th>Tipo</th>
+                <th>Entró</th><th>Salió</th>
+                <th>Tiempo</th><th>Pago</th><th class="text-end">Valor</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyHistorial">
+              <tr><td colspan="7" class="vacio">Escoge un rango y pulsa Buscar.</td></tr>
+            </tbody>
+          </table>
+
+          <div class="d-flex justify-content-between align-items-center pt-3 mt-3"
+               style="border-top:1px solid #e9ecef">
+            <button class="btn-texto" id="hPrev">Anterior</button>
+            <span class="small suave" id="hInfo"></span>
+            <button class="btn-texto" id="hNext">Siguiente</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO TIPO -->
+<div class="modal fade" id="modalTipo" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header"><h6 class="modal-title">Nuevo tipo de vehículo</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="rotulo mb-1">¿Cómo se llama?</div>
+        <input class="form-control mb-4" id="tipoNombre" placeholder="Camioneta" autocomplete="off">
+        <div class="rotulo mb-1">Cupos <span class="suave">(opcional)</span></div>
+        <input type="number" class="form-control" id="tipoCupos" min="0" placeholder="Sin límite">
+        <div class="small suave mt-2">Después ponle precio en Tarifas.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary" id="btnGuardarTipo">Crear</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QR DE PAGO -->
+<div class="modal fade" id="modalQR" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-body text-center py-4">
+        <div class="rotulo mb-3">Que el cliente escanee</div>
+        <img id="imgQR" src="" alt="QR de pago" class="img-fluid mb-3" style="max-height:340px">
+        <div class="total-cobro text-success" id="qrMonto">$ 0</div>
+        <div class="small suave mt-3">
+          El QR no lleva el monto. Verifica en tu celular que llegó la plata
+          antes de dar la salida.
+        </div>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button class="btn btn-primary btn-sm" data-bs-dismiss="modal">Ya pagó</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPROBANTE -->
+<div class="modal fade" id="modalComprobante" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-body text-center py-5" id="cuerpoComprobante"></div>
+      <div class="modal-footer justify-content-center">
+        <button class="btn-texto me-4" onclick="window.print()">Imprimir</button>
+        <button class="btn btn-primary btn-sm" data-bs-dismiss="modal">Listo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ============================================================
+   Vehiculos: entradas, cobros e historial.
+   El turno se abre y se cierra en Inicio. Aqui solo se LEE su estado
+   para bloquear la pantalla cuando esta cerrado.
+   CFG - Rutas de API. Si alguna no coincide, se cambia SOLO aqui.
+   Las que son arreglo se prueban en orden hasta que una responda.
+   ============================================================ */
+const CFG = {
+  turnoActual : '/api/turnos/actual',
+  turnoResumen: '/api/turnos/resumen',
+  tipos       : ['/api/tipos-vehiculos/activos', '/api/tipos-vehiculos', '/api/tipos-vehiculo'],
+  tipoCrear   : '/api/tipos-vehiculos',
+  activos     : '/api/movimientos/activos',
+  ingreso     : '/api/movimientos/ingreso',
+  salida      : '/api/movimientos/salida',
+  detalle     : '/api/movimientos/detalle/',
+  historial   : '/api/reportes/movimientos',
+  qrPago      : '/api/empresa/qr-pago'
+};
+
+const $ = id => document.getElementById(id);
+
+function pesos(v){
+  return '$ ' + (Math.round(Number(v) || 0)).toLocaleString('es-CO', { maximumFractionDigits:0 });
+}
+function hora(iso){
+  if(!iso) return '-';
+  const d = new Date(iso);
+  return isNaN(d) ? String(iso) : d.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit', hour12:true });
+}
+function fechaCorta(iso){
+  if(!iso) return '-';
+  const d = new Date(iso);
+  if(isNaN(d)) return String(iso);
+  return d.toLocaleDateString('es-CO', { day:'2-digit', month:'short' });
+}
+function esHoy(iso){
+  if(!iso) return false;
+  const d = new Date(iso);
+  if(isNaN(d)) return false;
+  const h = new Date();
+  return d.getFullYear()===h.getFullYear() && d.getMonth()===h.getMonth() && d.getDate()===h.getDate();
+}
+function fechaHora(iso){
+  if(!iso) return '-';
+  const d = new Date(iso);
+  if(isNaN(d)) return String(iso);
+  return d.toLocaleDateString('es-CO', { day:'2-digit', month:'2-digit', year:'2-digit' }) + ' ' + hora(iso);
+}
+function textoTiempo(det, desde, hasta){
+  if(det && typeof det === 'object'){
+    const d = det.dias|0, h = det.horas|0, m = det.minutos|0, p = [];
+    if(d) p.push(d + (d===1?' día':' días'));
+    if(h) p.push(h + ' h');
+    if(m || !p.length) p.push(m + ' min');
+    return p.join(' ');
+  }
+  if(desde){
+    const fin = hasta ? new Date(hasta).getTime() : Date.now();
+    const ms = fin - new Date(desde).getTime();
+    if(ms >= 0){
+      const min = Math.floor(ms/60000), h = Math.floor(min/60), m = min%60;
+      if(h >= 24){ const d = Math.floor(h/24); return d + (d===1?' día ':' días ') + (h%24) + ' h'; }
+      return h ? `${h} h ${m} min` : `${m} min`;
+    }
+  }
+  return '-';
+}
+function hoyISO(){ return new Date().toISOString().slice(0,10); }
+
+function avisar(tipo, texto){
+  const clase = { ok:'success', error:'danger', alerta:'warning' }[tipo] || 'secondary';
+  const el = document.createElement('div');
+  el.className = `alert alert-${clase} alert-dismissible py-2 border-0`;
+  el.innerHTML = `<div class="small">${texto}</div>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+  $('avisos').appendChild(el);
+  setTimeout(() => el.remove(), tipo==='error' ? 9000 : 4000);
+}
+
+async function api(url, opciones = {}){
+  const headers = { 'Accept':'application/json', ...(opciones.headers||{}) };
+  if(opciones.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+  const tok = localStorage.getItem('token') || localStorage.getItem('ps_token');
+  if(tok) headers['Authorization'] = 'Bearer ' + tok;
+
+  let res, cuerpo;
+  try{
+    res = await fetch(url, { ...opciones, headers, credentials:'include' });
+    const crudo = await res.text();
+    try { cuerpo = crudo ? JSON.parse(crudo) : {}; } catch { cuerpo = { message: crudo }; }
+  }catch(e){ throw new Error('No hay conexión con el servidor.'); }
+
+  if(res.status === 401 || res.status === 403)
+    throw new Error(cuerpo.message || cuerpo.error || 'La sesión expiró. Vuelve a entrar.');
+  if(!res.ok){
+    console.error('API', url, res.status, cuerpo);
+    const err = new Error(cuerpo.message || cuerpo.error || `El servidor respondió ${res.status}.`);
+    err.status = res.status;
+    throw err;
+  }
+  return cuerpo;
+}
+
+/* Prueba varias rutas hasta que una responda. */
+async function apiPrimera(rutas, opciones){
+  let ultimo;
+  for(const r of rutas){
+    try { return { ruta:r, datos: await api(r, opciones) }; }
+    catch(e){ ultimo = e; if(e.status && e.status !== 404) throw e; }
+  }
+  throw ultimo || new Error('Ninguna ruta respondió.');
+}
+
+function lista(r){
+  if(Array.isArray(r)) return r;
+  for(const k of ['data','movimientos','activos','rows','resultados','items','tipos','historial'])
+    if(Array.isArray(r?.[k])) return r[k];
+  if(r?.data && typeof r.data === 'object')
+    for(const k of ['movimientos','rows','items','data'])
+      if(Array.isArray(r.data[k])) return r.data[k];
+  return [];
+}
+function campo(o, claves, def=null){
+  for(const k of claves) if(o && o[k] !== undefined && o[k] !== null) return o[k];
+  return def;
+}
+
+const S = {
+  abierto:false, turno:null, recaudado:0,
+  activos:[], cobro:null,
+  hist:{ pagina:1, porPagina:25, total:0 }
+};
+
+/* ---------- nombre de usuario ---------- */
+(function(){
+  try{
+    const u = JSON.parse(localStorage.getItem('usuario') || localStorage.getItem('user') || 'null');
+    const n = u && (u.nombre || u.usuario || u.username || u.nombre_usuario);
+    if(n) $('userName').textContent = n;
+  }catch(e){}
+})();
+
+/* ================= TURNO (solo lectura) ================= */
+async function sincronizarTurno(){
+  try{
+    const r = await api(CFG.turnoActual);
+    const t = r.data || r.turno || null;
+    S.abierto = !!(t && (t.id_turno || t.id)) &&
+                String(campo(t,['estado'],'abierto')).toLowerCase() === 'abierto';
+    S.turno = S.abierto ? t : null;
+  }catch(e){
+    S.abierto = false; S.turno = null;
+    console.warn('turno:', e.message);
+  }
+
+  /* El backend devuelve { data: { turno, totales, stats } }. */
+  S.recaudado = 0;
+  if(S.abierto){
+    try{
+      const r = await api(CFG.turnoResumen);
+      S.recaudado = Number(r?.data?.totales?.total || 0);
+    }catch(e){}
+  }
+  pintarTurno();
+}
+
+function pintarTurno(){
+  const punto = $('puntoTurno'), texto = $('textoTurno');
+
+  if(S.abierto){
+    punto.className = 'punto on';
+    const desde = campo(S.turno, ['fecha_apertura','hora_apertura','created_at','fecha_inicio']);
+    const base  = campo(S.turno, ['base_inicial','baseInicial','base'], null);
+    const cuando = esHoy(desde) ? hora(desde) : fechaCorta(desde) + ', ' + hora(desde);
+    texto.innerHTML = 'Turno abierto desde ' + cuando +
+                      (base !== null ? ' <span class="suave">· base ' + pesos(base) + '</span>' : '');
+    $('wrapRecaudo').classList.remove('d-none');
+    $('recaudoTurno').textContent = pesos(S.recaudado);
+  }else{
+    punto.className = 'punto off';
+    texto.innerHTML = 'Turno cerrado <a href="dashboard.html" class="ms-2">Abrirlo en Inicio</a>';
+    $('wrapRecaudo').classList.add('d-none');
+  }
+
+  $('bloqueoTurno').classList.toggle('d-none', S.abierto);
+  $('zonaTrabajo').classList.toggle('d-none', !S.abierto);
+}
+
+/* ================= QR DE PAGO ================= */
+/* Es la foto fija del QR que el parqueadero tiene pegada en la caseta. Se sube
+   en Configuracion. Aqui solo se muestra en pantalla para que el cliente
+   escanee, asi el operador no tiene que buscarlo ni tenerlo impreso.
+
+   El sistema NO verifica el pago: el QR es estatico y no lleva el monto. El
+   operador confirma en su celular antes de dar la salida, igual que hoy. */
+let QR_URL = null;
+
+async function cargarQR(){
+  try{
+    const tok = localStorage.getItem('token') || localStorage.getItem('ps_token');
+    const r = await fetch(CFG.qrPago, {
+      headers: { 'Authorization': 'Bearer ' + tok },
+      credentials: 'include'
+    });
+    if(!r.ok) return;                 // 404 = no han subido ninguno
+    const b = await r.blob();
+    QR_URL = URL.createObjectURL(b);
+  }catch(e){ /* sin QR, el boton simplemente no aparece */ }
+}
+
+/* El boton solo sale cuando el metodo escogido se paga escaneando. */
+function actualizarBotonQR(){
+  const escanea = ['QR','nequi','daviplata','breb'].includes($('outMetodo').value);
+  $('wrapQR').classList.toggle('d-none', !(QR_URL && escanea));
+}
+
+$('outMetodo').addEventListener('change', actualizarBotonQR);
+
+$('btnMostrarQR').addEventListener('click', () => {
+  if(!QR_URL) return;
+  $('imgQR').src = QR_URL;
+  $('qrMonto').textContent = (S.cobro && S.cobro.total !== null)
+    ? pesos(S.cobro.total)
+    : $('cbTotal').textContent;
+  bootstrap.Modal.getOrCreateInstance($('modalQR')).show();
+});
+
+/* ================= TIPOS ================= */
+let RUTA_TIPOS = null;
+
+async function cargarTipos(){
+  const sel = $('inTipo');
+  try{
+    const { ruta, datos } = RUTA_TIPOS
+      ? { ruta: RUTA_TIPOS, datos: await api(RUTA_TIPOS) }
+      : await apiPrimera(CFG.tipos);
+    RUTA_TIPOS = ruta;
+
+    const arr = lista(datos);
+    if(!arr.length) throw new Error('No hay tipos de vehículo configurados.');
+
+    const previo = sel.value;
+    sel.innerHTML = arr.map(t => {
+      const id = campo(t,['id','id_tipo','id_tipo_vehiculo']);
+      return `<option value="${id}">${campo(t,['nombre','descripcion','tipo'],'Tipo ' + id)}</option>`;
+    }).join('');
+    if(previo) sel.value = previo;
+  }catch(e){
+    sel.innerHTML = '<option value="">Sin tipos configurados</option>';
+    avisar('error', e.message);
+  }
+}
+
+$('btnNuevoTipo').addEventListener('click', () => {
+  $('tipoNombre').value = '';
+  $('tipoCupos').value = '';
+  bootstrap.Modal.getOrCreateInstance($('modalTipo')).show();
+});
+$('modalTipo').addEventListener('shown.bs.modal', () => $('tipoNombre').focus());
+
+$('btnGuardarTipo').addEventListener('click', async () => {
+  const btn = $('btnGuardarTipo');
+  const nombre = $('tipoNombre').value.trim();
+  const cupos  = $('tipoCupos').value.trim();
+  if(!nombre) return avisar('alerta','Escribe el nombre del tipo.');
+
+  const codigo = nombre.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+
+  btn.disabled = true; btn.textContent = 'Creando…';
+  try{
+    await api(CFG.tipoCrear, { method:'POST', body: JSON.stringify({
+      nombre, codigo, activo: 1,
+      capacidad: cupos === '' ? null : Number(cupos)
+    })});
+    bootstrap.Modal.getInstance($('modalTipo')).hide();
+    avisar('ok','Tipo "' + nombre + '" creado. Ponle precio en Tarifas.');
+    await cargarTipos();
+  }catch(e){ avisar('error', e.message); }
+  finally{ btn.disabled = false; btn.textContent = 'Crear'; }
+});
+
+/* ================= ADENTRO ================= */
+async function cargarActivos(){
+  try{ S.activos = lista(await api(CFG.activos)); }
+  catch(e){ S.activos = []; avisar('error', e.message); }
+  pintarRapido();
+  pintarAdentro();
+}
+
+function datosFila(m){
+  return {
+    id:    campo(m,['id','id_movimiento']),
+    placa: String(campo(m,['placa'],'-')).toUpperCase(),
+    tipo:  campo(m,['tipo_vehiculo','tipo','nombre_tipo'],'-'),
+    ent:   campo(m,['fecha_entrada','hora_entrada','entrada','created_at'])
+  };
+}
+
+function pintarRapido(){
+  const q = $('filtroRapido').value.trim().toUpperCase();
+  const arr = S.activos.filter(m => !q || datosFila(m).placa.includes(q));
+  const tb = $('tbodyRapido');
+
+  $('contActivos').textContent = S.activos.length;
+
+  if(!arr.length){
+    tb.innerHTML = `<tr><td class="vacio">${
+      S.activos.length ? 'Ninguna placa coincide.' : 'Todavía no ha entrado nadie.'
+    }</td></tr>`;
+    return;
+  }
+
+  tb.innerHTML = arr.map(m => {
+    const d = datosFila(m);
+    return `<tr>
+      <td>
+        <div class="placa">${d.placa}</div>
+        <div class="small suave">${d.tipo} · lleva ${textoTiempo(null, d.ent)}</div>
+      </td>
+      <td class="text-end" style="width:5rem">
+        <button class="btn-texto btn-cobrar" data-id="${d.id}">Cobrar</button>
+      </td></tr>`;
+  }).join('');
+
+  tb.querySelectorAll('.btn-cobrar').forEach(b =>
+    b.addEventListener('click', () => prepararCobro(b.dataset.id)));
+}
+
+function pintarAdentro(){
+  const q = $('filtroAdentro').value.trim().toUpperCase();
+  const arr = S.activos.filter(m => !q || datosFila(m).placa.includes(q));
+  const tb = $('tbodyAdentro');
+
+  if(!arr.length){
+    tb.innerHTML = '<tr><td colspan="5" class="vacio">No hay vehículos adentro.</td></tr>';
+    return;
+  }
+
+  tb.innerHTML = arr.map(m => {
+    const d = datosFila(m);
+    return `<tr>
+      <td class="placa">${d.placa}</td>
+      <td class="suave">${d.tipo}</td>
+      <td class="suave">${hora(d.ent)}</td>
+      <td class="suave">${textoTiempo(null, d.ent)}</td>
+      <td class="text-end">
+        <button class="btn-texto btn-cobrar2" data-id="${d.id}">Cobrar</button>
+      </td></tr>`;
+  }).join('');
+
+  tb.querySelectorAll('.btn-cobrar2').forEach(b =>
+    b.addEventListener('click', () => {
+      prepararCobro(b.dataset.id);
+      document.querySelector('[data-bs-target="#tabMovimiento"]').click();
+    }));
+}
+
+$('filtroRapido').addEventListener('input', pintarRapido);
+$('filtroAdentro').addEventListener('input', pintarAdentro);
+$('btnRefrescar').addEventListener('click', cargarActivos);
+
+/* ================= ENTRADA ================= */
+$('inPlaca').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
+$('inPlaca').addEventListener('keydown', e => { if(e.key === 'Enter') $('btnIngresar').click(); });
+
+$('btnIngresar').addEventListener('click', async () => {
+  const btn = $('btnIngresar');
+  const placa = $('inPlaca').value.trim().toUpperCase();
+  const tipo  = $('inTipo').value;
+
+  if(placa.length < 3) return avisar('alerta','Escribe la placa.');
+  if(!tipo)            return avisar('alerta','Escoge el tipo de vehículo.');
+  if(S.activos.some(m => datosFila(m).placa === placa))
+    return avisar('alerta', placa + ' ya está adentro.');
+
+  btn.disabled = true; btn.textContent = 'Registrando…';
+  try{
+    await api(CFG.ingreso, { method:'POST', body: JSON.stringify({
+      placa, id_tipo_vehiculo: tipo, tipo_vehiculo: tipo, id_tipo: tipo
+    })});
+    avisar('ok','Entró ' + placa + '.');
+    $('inPlaca').value = '';
+    $('inPlaca').focus();
+    await cargarActivos();
+  }catch(e){ avisar('error', e.message); }
+  finally{ btn.disabled = false; btn.textContent = 'Registrar entrada'; }
+});
+
+/* ================= COBRO ================= */
+async function prepararCobro(id){
+  const mov = S.activos.find(m => String(datosFila(m).id) === String(id));
+  if(!mov) return avisar('alerta','Ese vehículo ya no está adentro.');
+
+  const d = datosFila(mov);
+  $('sinSeleccion').style.display = 'none';
+  $('cobroBox').style.display = 'block';
+  $('cbPlaca').textContent = d.placa;
+  $('cbTiempo').textContent = 'Lleva ' + textoTiempo(null, d.ent);
+  $('cbTotal').textContent = 'calculando…';
+
+  S.cobro = { id: d.id, placa: d.placa, entrada: d.ent, total: null };
+  actualizarBotonQR();
+
+  try{
+    const prev = await api(CFG.detalle + d.id);
+    const x = prev.movimiento || prev.data || prev;
+    const det   = campo(x,['detalleTiempo','detalle_tiempo']);
+    const total = campo(x,['total','valor_total','valor','monto'], null);
+    if(det) $('cbTiempo').textContent = 'Lleva ' + textoTiempo(det, d.ent);
+    S.cobro.total = total !== null ? Number(total) : null;
+    $('cbTotal').textContent = total !== null ? pesos(total) : 'se calcula al cobrar';
+  }catch(e){
+    $('cbTotal').textContent = 'se calcula al cobrar';
+    console.warn('detalle:', e.message);
+  }
+}
+
+$('btnCancelar').addEventListener('click', () => {
+  S.cobro = null;
+  $('cobroBox').style.display = 'none';
+  $('sinSeleccion').style.display = 'block';
+});
+
+$('btnFinalizar').addEventListener('click', async () => {
+  if(!S.cobro) return;
+  const btn = $('btnFinalizar');
+  const metodo = $('outMetodo').value;
+  const metodoTexto = $('outMetodo').selectedOptions[0]?.textContent || metodo;
+
+  btn.disabled = true; btn.textContent = 'Cobrando…';
+  try{
+    const r = await api(CFG.salida, { method:'POST', body: JSON.stringify({
+      id_movimiento: S.cobro.id, id: S.cobro.id,
+      placa: S.cobro.placa,
+      metodo_pago: metodo, metodoPago: metodo
+    })});
+    const s = r.movimiento || r.salida || r.data || r;
+
+    const total  = campo(s,['total','valor_total','valor','monto'], S.cobro.total ?? 0);
+    const det    = campo(s,['detalleTiempo','detalle_tiempo']);
+    const tiempo = textoTiempo(det, S.cobro.entrada);
+
+    mostrarComprobante({ placa:S.cobro.placa, tiempo, metodo:metodoTexto, total });
+
+    S.cobro = null;
+    $('cobroBox').style.display = 'none';
+    $('sinSeleccion').style.display = 'block';
+    await cargarActivos();
+    await sincronizarTurno();
+    $('inPlaca').focus();
+  }catch(e){ avisar('error', e.message); }
+  finally{ btn.disabled = false; btn.textContent = 'Cobrar y dar salida'; }
+});
+
+function mostrarComprobante(c){
+  $('cuerpoComprobante').innerHTML = `
+    <div class="placa placa-xl">${c.placa}</div>
+    <div class="small suave mb-4">${c.tiempo} · ${c.metodo}</div>
+    <div class="total-cobro text-success">${pesos(c.total)}</div>
+    <div class="small suave mt-2">Cobrado</div>`;
+  bootstrap.Modal.getOrCreateInstance($('modalComprobante')).show();
+}
+
+/* ================= HISTORIAL ================= */
+async function cargarHistorial(){
+  const tb = $('tbodyHistorial');
+  tb.innerHTML = '<tr><td colspan="7" class="vacio">Buscando…</td></tr>';
+
+  const p = new URLSearchParams();
+  if($('hDesde').value) p.set('desde', $('hDesde').value);
+  if($('hHasta').value) p.set('hasta', $('hHasta').value);
+  if($('hPlaca').value.trim()) p.set('placa', $('hPlaca').value.trim().toUpperCase());
+  p.set('estado', 'finalizado');
+  p.set('page', S.hist.pagina);
+  p.set('limit', S.hist.porPagina);
+
+  let arr = [];
+  try{
+    const r = await api(CFG.historial + '?' + p.toString());
+    arr = lista(r);
+    S.hist.total = Number(campo(r, ['total','totalRows','count'], arr.length)) || arr.length;
+  }catch(e){
+    tb.innerHTML = `<tr><td colspan="7" class="vacio text-danger">${e.message}</td></tr>`;
+    $('hInfo').textContent = '';
+    return;
+  }
+
+  if(!arr.length){
+    tb.innerHTML = '<tr><td colspan="7" class="vacio">No hay salidas en ese rango.</td></tr>';
+    $('hInfo').textContent = 'Página ' + S.hist.pagina;
+    return;
+  }
+
+  tb.innerHTML = arr.map(m => {
+    const placa = String(campo(m,['placa'],'-')).toUpperCase();
+    const tipo  = campo(m,['tipo_vehiculo','tipo','nombre_tipo'],'-');
+    const ent   = campo(m,['fecha_entrada','hora_entrada','entrada']);
+    const sal   = campo(m,['fecha_salida','hora_salida','salida']);
+    const val   = campo(m,['total','valor_total','valor','monto'], null);
+    const met   = campo(m,['metodo_pago','metodoPago','metodo'],'-');
+    return `<tr>
+      <td class="placa">${placa}</td>
+      <td class="suave">${tipo}</td>
+      <td class="suave">${fechaHora(ent)}</td>
+      <td class="suave">${fechaHora(sal)}</td>
+      <td class="suave">${textoTiempo(campo(m,['detalleTiempo','detalle_tiempo']), ent, sal)}</td>
+      <td class="suave">${met}</td>
+      <td class="text-end">${val !== null ? pesos(val) : '-'}</td>
+    </tr>`;
+  }).join('');
+
+  const tot = arr.reduce((a,m) => a + (Number(campo(m,['total','valor_total','valor'],0))||0), 0);
+  $('hInfo').textContent = 'Página ' + S.hist.pagina + ' · ' + arr.length +
+                           ' salidas · ' + pesos(tot) + ' en pantalla';
+}
+
+$('btnBuscarHist').addEventListener('click', () => { S.hist.pagina = 1; cargarHistorial(); });
+$('hPlaca').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
+$('hPlaca').addEventListener('keydown', e => { if(e.key === 'Enter') $('btnBuscarHist').click(); });
+$('hPrev').addEventListener('click', () => {
+  if(S.hist.pagina > 1){ S.hist.pagina--; cargarHistorial(); }
+});
+$('hNext').addEventListener('click', () => { S.hist.pagina++; cargarHistorial(); });
+
+let histCargado = false;
+document.querySelector('[data-bs-target="#tabHistorial"]').addEventListener('shown.bs.tab', () => {
+  if(!histCargado){ histCargado = true; cargarHistorial(); }
+});
+
+/* ================= ARRANQUE ================= */
+(async function init(){
+  $('hDesde').value = hoyISO();
+  $('hHasta').value = hoyISO();
+
+  await sincronizarTurno();
+  await cargarTipos();
+  await cargarActivos();
+  await cargarQR();
+
+  setInterval(async () => {
+    await cargarActivos();
+    if(S.abierto) await sincronizarTurno();
+  }, 60000);
+
+  if(S.abierto) $('inPlaca').focus();
+})();
+</script>
+<script src="../js/menu.js"></script>
+</body>
+</html>

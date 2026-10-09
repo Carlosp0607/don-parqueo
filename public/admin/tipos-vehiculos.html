@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Don Parqueo - Tipos de Vehículos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="../css/dashboard.css" rel="stylesheet">
+    <script>
+        // Guard: requiere token y rol admin
+        if (!localStorage.getItem('token')) { window.location.href = '/'; }
+        if (localStorage.getItem('userRole') !== 'admin') { window.location.href = '/admin/dashboard'; }
+    </script>
+    <style>
+      #codigo { font-family:ui-monospace, Menlo, Consolas, monospace; }
+      .eco { min-height:1.1rem; font-size:.85rem; }
+    </style>
+</head>
+<body>
+    <!-- El menú lo escribe public/js/menu.js. -->
+    <div class="sidebar">
+        <div class="sidebar-footer">
+            <a href="#" class="nav-link" id="btnLogout"><i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span></a>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+            <div class="container-fluid">
+                <button class="btn btn-link sidebar-toggle"><i class="fas fa-bars"></i></button>
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <span class="nav-link"><i class="fas fa-user-circle me-2"></i><span id="userName">Usuario</span></span>
+                    </li>
+                </ul>
+                <!-- Enlace heredado, oculto. Algunos scripts antiguos lo buscan. -->
+                <a href="#" id="logoutDropdown" class="d-none">Cerrar Sesión</a>
+            </div>
+        </nav>
+
+        <div class="container-fluid py-4">
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h5 class="mb-0">Tipos de vehículo</h5>
+                        <div class="text-muted small">Define qué recibe el parqueadero y cuántos cupos hay de cada uno.</div>
+                    </div>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tipoModal" onclick="nuevoTipo()">
+                        <i class="fas fa-plus me-2"></i>Nuevo tipo
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle" id="tiposTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Código</th>
+                                    <th>Cupos</th>
+                                    <th>Registrados</th>
+                                    <th>Tarifa</th>
+                                    <th>Estado</th>
+                                    <th>Creado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nuevo / editar tipo -->
+    <div class="modal fade" id="tipoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Nuevo Tipo de Vehículo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="tipoForm">
+                        <input type="hidden" id="tipoId">
+
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label">¿Cómo se llama?</label>
+                            <input type="text" class="form-control form-control-lg" id="nombre" required
+                                   placeholder="Carro" autocomplete="off">
+                            <div class="form-text">Así lo va a ver el operador al registrar una entrada.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="codigo" class="form-label">Código interno</label>
+                            <input type="text" class="form-control" id="codigo" required placeholder="carro" autocomplete="off">
+                            <div class="form-text">Sin espacios ni tildes. Se usa por dentro del sistema.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="capacidad" class="form-label">
+                                Cupos <span class="text-muted small">(opcional)</span>
+                            </label>
+                            <input type="number" class="form-control" id="capacidad" min="0" placeholder="50">
+                            <div class="eco text-muted" id="ecoCapacidad">Déjalo vacío si no quieres límite.</div>
+                        </div>
+
+                        <div class="border-top pt-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="activo" checked>
+                                <label class="form-check-label" for="activo">Disponible para registrar entradas</label>
+                            </div>
+                            <div class="form-text">Si lo apagas, deja de aparecer en la pantalla de Operación.</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btnGuardar">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="position-fixed top-0 end-0 p-3" style="z-index:1100">
+        <div id="toastContainer"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script src="../js/footer.js"></script>
+    <script src="../js/tipos-vehiculos.js"></script>
+    <script src="../js/menu.js"></script>
+    <script>
+    /* Solo detalles de la vista. El guardado sigue en tipos-vehiculos.js. */
+    (function () {
+      'use strict';
+      var $ = function (id) { return document.getElementById(id); };
+
+      function normalizar(t) {
+        return String(t || '')
+          .toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .replace(/\s+/g, '_')
+          .replace(/[^a-z0-9_]/g, '');
+      }
+
+      var nombre = $('nombre'), codigo = $('codigo');
+
+      // Sugiere el código mientras se escribe el nombre, solo si el usuario
+      // no lo ha escrito a mano.
+      if (nombre && codigo) {
+        codigo.addEventListener('input', function () { this.dataset.manual = '1'; });
+        nombre.addEventListener('input', function () {
+          if (codigo.dataset.manual === '1') return;
+          codigo.value = normalizar(this.value);
+        });
+      }
+
+      var cap = $('capacidad'), eco = $('ecoCapacidad');
+      if (cap && eco) {
+        var refrescar = function () {
+          var v = cap.value.trim();
+          eco.textContent = v === ''
+            ? 'Déjalo vacío si no quieres límite.'
+            : 'Caben ' + (Number(v) || 0) + ' al tiempo.';
+        };
+        cap.addEventListener('input', refrescar);
+        refrescar();
+      }
+
+      var modal = $('tipoModal');
+      if (modal) {
+        modal.addEventListener('shown.bs.modal', function () {
+          if (nombre) nombre.focus();
+        });
+        modal.addEventListener('hidden.bs.modal', function () {
+          if (codigo) delete codigo.dataset.manual;
+        });
+      }
+    })();
+    </script>
+</body>
+</html>

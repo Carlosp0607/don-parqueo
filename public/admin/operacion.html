@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Don Parqueo - Operación</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="../css/dashboard.css" rel="stylesheet">
+<style>
+  .panel { background:#fff; border:1px solid #dee2e6; border-radius:.5rem; }
+  .panel-cab { padding:.7rem 1rem; border-bottom:1px solid #dee2e6; font-weight:600; }
+  .panel-cuerpo { padding:1rem; }
+  .placa { font-family:ui-monospace, Menlo, Consolas, monospace; font-weight:700; letter-spacing:.06em; }
+  .placa-grande { font-size:1.4rem; }
+  .avisos { position:fixed; top:1rem; right:1rem; z-index:1080; width:22rem; max-width:calc(100vw - 2rem); }
+  #cobroBox { display:none; }
+  .total-cobro { font-size:2.4rem; font-weight:700; line-height:1.1; }
+  .deshabilitado { opacity:.45; pointer-events:none; }
+  .fila-adentro td { padding:.7rem .75rem; vertical-align:middle; }
+  #inPlaca { font-size:1.5rem; height:auto; padding:.5rem .75rem; }
+  .recaudo { font-size:1.5rem; font-weight:700; }
+</style>
+</head>
+<body>
+
+<div class="avisos" id="avisos"></div>
+
+<div class="sidebar"></div>
+
+<div class="main-content">
+
+  <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+    <div class="container-fluid">
+      <button class="btn btn-link sidebar-toggle"><i class="fas fa-bars"></i></button>
+      <div class="d-flex align-items-center gap-2 ms-2 flex-wrap">
+        <span class="badge bg-secondary" id="badgeTurno">Consultando…</span>
+        <button class="btn btn-sm btn-success" id="btnTurno" disabled>…</button>
+      </div>
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <span class="nav-link"><i class="fas fa-user-circle me-2"></i><span id="userName">Usuario</span></span>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container-fluid py-3">
+    <div class="row g-3">
+
+      <!-- INGRESO -->
+      <div class="col-lg-3">
+        <div class="panel h-100">
+          <div class="panel-cab bg-light">Entrada</div>
+          <div class="panel-cuerpo" id="zonaIngreso">
+            <select class="form-select mb-3" id="inTipo"></select>
+            <input class="form-control placa mb-3 text-uppercase text-center" id="inPlaca"
+                   maxlength="10" autocomplete="off" placeholder="PLACA">
+            <button class="btn btn-primary btn-lg w-100" id="btnIngresar">Registrar entrada</button>
+            <div class="form-text mt-2" id="ayudaIngreso">Abre el turno para empezar.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADENTRO -->
+      <div class="col-lg-5">
+        <div class="panel h-100">
+          <div class="panel-cab bg-light d-flex align-items-center">
+            <span>Adentro</span>
+            <span class="badge bg-primary ms-2" id="contActivos">0</span>
+            <button class="btn btn-sm btn-link ms-auto p-0 text-muted" id="btnRefrescar" title="Actualizar">
+              <i class="fas fa-rotate"></i>
+            </button>
+          </div>
+          <div class="panel-cuerpo p-0">
+            <div class="table-responsive" style="max-height:28rem; overflow:auto">
+              <table class="table table-hover mb-0">
+                <tbody id="tbodyActivos">
+                  <tr><td class="text-center text-muted py-4">Cargando…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SALIDA -->
+      <div class="col-lg-4">
+        <div class="panel h-100">
+          <div class="panel-cab bg-light">Salida</div>
+          <div class="panel-cuerpo" id="zonaSalida">
+
+            <div id="sinSeleccion" class="text-center text-muted py-5">
+              <i class="fas fa-hand-pointer fs-2 d-block mb-3 opacity-50"></i>
+              Toca un vehículo de la lista para cobrarle.
+            </div>
+
+            <div id="cobroBox">
+              <div class="text-center mb-3">
+                <div class="placa placa-grande" id="cbPlaca">-</div>
+                <div class="text-muted small" id="cbTiempo">-</div>
+              </div>
+
+              <div class="text-center border-top border-bottom py-3 mb-3">
+                <div class="text-muted small">A cobrar</div>
+                <div class="total-cobro text-success" id="cbTotal">$ 0</div>
+              </div>
+
+              <select class="form-select mb-3" id="outMetodo">
+                <option value="efectivo">Efectivo</option>
+                <option value="tarjeta">Tarjeta</option>
+                <option value="transferencia">Transferencia</option>
+                <option value="nequi">Nequi / Daviplata</option>
+                <option value="breb">Bre-B</option>
+              </select>
+
+              <button class="btn btn-success btn-lg w-100 mb-2" id="btnFinalizar">Cobrar y dar salida</button>
+              <button class="btn btn-link btn-sm w-100 text-muted" id="btnCancelar">Cancelar</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- RECAUDO -->
+      <div class="col-12">
+        <div class="panel">
+          <div class="panel-cuerpo d-flex flex-wrap align-items-center gap-4">
+            <div>
+              <div class="text-muted small">Recaudado hoy</div>
+              <div class="recaudo text-success" id="totalDia">$ 0</div>
+            </div>
+            <div>
+              <div class="text-muted small">Entradas</div>
+              <div class="recaudo" id="contEntradas">0</div>
+            </div>
+            <div>
+              <div class="text-muted small">Salidas</div>
+              <div class="recaudo" id="contSalidas">0</div>
+            </div>
+            <button class="btn btn-outline-secondary btn-sm ms-auto" data-bs-toggle="collapse" data-bs-target="#detalleDia">
+              Ver detalle
+            </button>
+          </div>
+          <div class="collapse" id="detalleDia">
+            <div class="table-responsive border-top" style="max-height:18rem; overflow:auto">
+              <table class="table table-sm mb-0">
+                <thead class="table-light sticky-top">
+                  <tr><th>Hora</th><th>Placa</th><th>Movimiento</th><th class="text-end">Valor</th></tr>
+                </thead>
+                <tbody id="tbodyHistorial">
+                  <tr><td colspan="4" class="text-center text-muted py-3">Sin movimientos hoy.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- COMPROBANTE -->
+<div class="modal fade" id="modalComprobante" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-body text-center py-4" id="cuerpoComprobante"></div>
+      <div class="modal-footer justify-content-center">
+        <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">Imprimir</button>
+        <button class="btn btn-primary btn-sm" data-bs-dismiss="modal">Listo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ============================================================
+   CFG - Rutas de API. Si alguna no coincide, se cambia SOLO aquí.
+   ============================================================ */
+const CFG = {
+  turnoActual : '/api/turnos/actual',
+  turnoAbrir  : '/api/turnos/abrir',
+  turnoCerrar : '/api/turnos/cerrar',
+  tipos       : '/api/tipos-vehiculo',
+  activos     : '/api/movimientos/activos',
+  ingreso     : '/api/movimientos/ingreso',
+  salida      : '/api/movimientos/salida',
+  historial   : '/api/movimientos/historial'
+};
+
+const $ = id => document.getElementById(id);
+
+function pesos(v){
+  return '$ ' + (Math.round(Number(v) || 0)).toLocaleString('es-CO', { maximumFractionDigits:0 });
+}
+
+function hora(iso){
+  if(!iso) return '-';
+  const d = new Date(iso);
+  return isNaN(d) ? String(iso) : d.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit', hour12:true });
+}
+
+function textoTiempo(det, entradaISO){
+  if(det && typeof det === 'object'){
+    const d = det.dias|0, h = det.horas|0, m = det.minutos|0;
+    const p = [];
+    if(d) p.push(d + (d===1?' día':' días'));
+    if(h) p.push(h + ' h');
+    if(m || !p.length) p.push(m + ' min');
+    return p.join(' ');
+  }
+  if(entradaISO){
+    const ms = Date.now() - new Date(entradaISO).getTime();
+    if(ms >= 0){
+      const min = Math.floor(ms/60000), h = Math.floor(min/60), m = min%60;
+      return h ? `${h} h ${m} min` : `${m} min`;
+    }
+  }
+  return '-';
+}
+
+function avisar(tipo, texto){
+  const clase = { ok:'success', error:'danger', alerta:'warning' }[tipo] || 'secondary';
+  const el = document.createElement('div');
+  el.className = `alert alert-${clase} alert-dismissible shadow-sm py-2`;
+  el.innerHTML = `<div class="small">${texto}</div>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+  $('avisos').appendChild(el);
+  setTimeout(() => el.remove(), tipo==='error' ? 9000 : 4000);
+}
+
+async function api(url, opciones = {}){
+  const headers = { 'Accept':'application/json', ...(opciones.headers||{}) };
+  if(opciones.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+  const tok = localStorage.getItem('token') || localStorage.getItem('ps_token');
+  if(tok) headers['Authorization'] = 'Bearer ' + tok;
+
+  let res, cuerpo;
+  try{
+    res = await fetch(url, { ...opciones, headers, credentials:'include' });
+    const crudo = await res.text();
+    try { cuerpo = crudo ? JSON.parse(crudo) : {}; } catch { cuerpo = { message: crudo }; }
+  }catch(e){
+    throw new Error('No hay conexión con el servidor.');
+  }
+  if(res.status === 401 || res.status === 403)
+    throw new Error(cuerpo.message || cuerpo.error || 'La sesión expiró. Vuelve a entrar.');
+  if(!res.ok){
+    console.error('API', url, res.status, cuerpo);
+    throw new Error(cuerpo.message || cuerpo.error || `El servidor respondió ${res.status}.`);
+  }
+  return cuerpo;
+}
+
+function lista(r){
+  if(Array.isArray(r)) return r;
+  for(const k of ['data','movimientos','activos','rows','resultados','items','historial'])
+    if(Array.isArray(r?.[k])) return r[k];
+  return [];
+}
+function campo(o, claves, def=null){
+  for(const k of claves) if(o && o[k] !== undefined && o[k] !== null) return o[k];
+  return def;
+}
+
+const S = { turno:null, abierto:false, activos:[], cobro:null, historial:[] };
+
+/* ---------- turno ---------- */
+async function sincronizarTurno(){
+  try{
+    const r = await api(CFG.turnoActual);
+    const t = r.turno || r.data || r;
+    S.abierto = !!(t && (t.id || t.id_turno)) &&
+                String(campo(t,['estado'],'abierto')).toLowerCase() === 'abierto';
+    S.turno = S.abierto ? t : null;
+  }catch(e){
+    S.turno = null; S.abierto = false;
+    console.warn('turno:', e.message);
+  }
+  pintarTurno();
+}
+
+function pintarTurno(){
+  const b = $('badgeTurno'), btn = $('btnTurno');
+  if(S.abierto){
+    b.className = 'badge bg-success'; b.textContent = 'Turno abierto';
+    btn.className = 'btn btn-sm btn-outline-danger'; btn.textContent = 'Cerrar turno';
+  }else{
+    b.className = 'badge bg-warning text-dark'; b.textContent = 'Turno cerrado';
+    btn.className = 'btn btn-sm btn-success'; btn.textContent = 'Abrir turno';
+  }
+  btn.disabled = false;
+  $('zonaIngreso').classList.toggle('deshabilitado', !S.abierto);
+  $('zonaSalida').classList.toggle('deshabilitado', !S.abierto);
+  $('ayudaIngreso').textContent = S.abierto ? '' : 'Abre el turno para empezar.';
+}
+
+$('btnTurno').addEventListener('click', async () => {
+  const btn = $('btnTurno'); btn.disabled = true;
+  try{
+    if(!S.abierto){
+      const txt = prompt('¿Con cuánta plata arranca la caja?', '50000');
+      if(txt === null){ btn.disabled = false; return; }
+      const base = parseInt(String(txt).replace(/[^\d]/g,''), 10);
+      if(!Number.isFinite(base)) throw new Error('Escribe solo números. Ejemplo: 50000');
+      await api(CFG.turnoAbrir, { method:'POST', body: JSON.stringify({ base_inicial: base, baseInicial: base }) });
+      avisar('ok','Turno abierto con ' + pesos(base) + ' en caja.');
+    }else{
+      if(!confirm('¿Cerrar el turno?')){ btn.disabled = false; return; }
+      const r = await api(CFG.turnoCerrar, { method:'POST', body: JSON.stringify({}) });
+      const total = campo(r.turno||r.data||r, ['total_recaudado','totalRecaudado','total'], null);
+      avisar('ok','Turno cerrado.' + (total!==null ? ' Recaudado ' + pesos(total) + '.' : ''));
+    }
+    await sincronizarTurno();
+    await cargarActivos();
+  }catch(e){ avisar('error', e.message); }
+  finally{ $('btnTurno').disabled = false; }
+});
+
+/* ---------- tipos ---------- */
+async function cargarTipos(){
+  const sel = $('inTipo');
+  try{
+    const arr = lista(await api(CFG.tipos));
+    if(!arr.length) throw new Error('No hay tipos de vehículo configurados.');
+    sel.innerHTML = arr.map(t => {
+      const id = campo(t,['id','id_tipo','id_tipo_vehiculo']);
+      return `<option value="${id}">${campo(t,['nombre','descripcion','tipo'],'Tipo ' + id)}</option>`;
+    }).join('');
+  }catch(e){
+    sel.innerHTML = '<option value="">Sin tipos configurados</option>';
+    avisar('error', e.message);
+  }
+}
+
+/* ---------- adentro ---------- */
+async function cargarActivos(){
+  try{
+    S.activos = lista(await api(CFG.activos));
+  }catch(e){
+    S.activos = [];
+    avisar('error', e.message);
+  }
+  pintarActivos();
+}
+
+function pintarActivos(){
+  $('contActivos').textContent = S.activos.length;
+  const tb = $('tbodyActivos');
+
+  if(!S.activos.length){
+    tb.innerHTML = '<tr><td class="text-center text-muted py-5">No hay vehículos adentro.</td></tr>';
+    return;
+  }
+
+  tb.innerHTML = S.activos.map(m => {
+    const placa = campo(m,['placa'],'-');
+    const ent   = campo(m,['fecha_entrada','hora_entrada','entrada','created_at']);
+    const id    = campo(m,['id','id_movimiento']);
+    return `<tr class="fila-adentro">
+      <td>
+        <div class="placa">${placa}</div>
+        <div class="text-muted small">Entró ${hora(ent)} · lleva ${textoTiempo(null, ent)}</div>
+      </td>
+      <td class="text-end" style="width:7rem">
+        <button class="btn btn-outline-success btn-cobrar" data-id="${id}">Cobrar</button>
+      </td></tr>`;
+  }).join('');
+
+  tb.querySelectorAll('.btn-cobrar').forEach(b => {
+    b.addEventListener('click', () => prepararCobro(b.dataset.id));
+  });
+}
+
+$('btnRefrescar').addEventListener('click', cargarActivos);
+
+/* ---------- entrada ---------- */
+$('inPlaca').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
+$('inPlaca').addEventListener('keydown', e => { if(e.key === 'Enter') $('btnIngresar').click(); });
+
+$('btnIngresar').addEventListener('click', async () => {
+  const btn = $('btnIngresar');
+  const placa = $('inPlaca').value.trim().toUpperCase();
+  const tipo  = $('inTipo').value;
+
+  if(!S.abierto)       return avisar('alerta','Abre el turno primero.');
+  if(placa.length < 3) return avisar('alerta','Escribe la placa.');
+  if(!tipo)            return avisar('alerta','Escoge el tipo de vehículo.');
+  if(S.activos.some(m => String(campo(m,['placa'],'')).toUpperCase() === placa))
+    return avisar('alerta', placa + ' ya está adentro.');
+
+  btn.disabled = true; btn.textContent = 'Registrando…';
+  try{
+    const r = await api(CFG.ingreso, { method:'POST', body: JSON.stringify({
+      placa, id_tipo_vehiculo: tipo, tipo_vehiculo: tipo, id_tipo: tipo
+    })});
+    const mov = r.movimiento || r.data || r;
+    const h = campo(mov,['fecha_entrada','hora_entrada','entrada'], new Date().toISOString());
+    avisar('ok','Entró ' + placa + '.');
+    S.historial.unshift({ hora:h, placa, evento:'Entrada', valor:null });
+    pintarResumen();
+    $('inPlaca').value = '';
+    $('inPlaca').focus();
+    await cargarActivos();
+  }catch(e){ avisar('error', e.message); }
+  finally{ btn.disabled = false; btn.textContent = 'Registrar entrada'; }
+});
+
+/* ---------- cobro ---------- */
+async function prepararCobro(id){
+  const mov = S.activos.find(m => String(campo(m,['id','id_movimiento'])) === String(id));
+  if(!mov) return avisar('alerta','Ese vehículo ya no está adentro. Actualiza la lista.');
+
+  const placa = campo(mov,['placa'],'-');
+  const ent   = campo(mov,['fecha_entrada','hora_entrada','entrada','created_at']);
+
+  $('sinSeleccion').style.display = 'none';
+  $('cobroBox').style.display = 'block';
+  $('cbPlaca').textContent = placa;
+  $('cbTiempo').textContent = 'Lleva ' + textoTiempo(null, ent);
+  $('cbTotal').textContent = 'calculando…';
+
+  S.cobro = { id, placa, entrada:ent, total:null };
+
+  try{
+    const prev = await api('/api/movimientos/detalle/' + id);
+    const d = prev.movimiento || prev.data || prev;
+    const det   = campo(d,['detalleTiempo','detalle_tiempo']);
+    const total = campo(d,['total','valor_total','valor','monto'], null);
+    if(det) $('cbTiempo').textContent = 'Lleva ' + textoTiempo(det, ent);
+    S.cobro.total = total !== null ? Number(total) : null;
+    $('cbTotal').textContent = total !== null ? pesos(total) : 'se calcula al cobrar';
+  }catch(e){
+    $('cbTotal').textContent = 'se calcula al cobrar';
+    console.warn('detalle:', e.message);
+  }
+}
+
+$('btnCancelar').addEventListener('click', () => {
+  S.cobro = null;
+  $('cobroBox').style.display = 'none';
+  $('sinSeleccion').style.display = 'block';
+});
+
+$('btnFinalizar').addEventListener('click', async () => {
+  if(!S.cobro) return;
+  const btn = $('btnFinalizar');
+  const metodo = $('outMetodo').value;
+  const metodoTexto = $('outMetodo').selectedOptions[0]?.textContent || metodo;
+
+  btn.disabled = true; btn.textContent = 'Cobrando…';
+  try{
+    const r = await api(CFG.salida, { method:'POST', body: JSON.stringify({
+      id_movimiento: S.cobro.id, id: S.cobro.id,
+      placa: S.cobro.placa,
+      metodo_pago: metodo, metodoPago: metodo
+    })});
+    const s = r.movimiento || r.salida || r.data || r;
+
+    const total  = campo(s,['total','valor_total','valor','monto'], S.cobro.total ?? 0);
+    const det    = campo(s,['detalleTiempo','detalle_tiempo']);
+    const sal    = campo(s,['fecha_salida','hora_salida','salida'], new Date().toISOString());
+    const tiempo = textoTiempo(det, S.cobro.entrada);
+
+    S.historial.unshift({ hora:sal, placa:S.cobro.placa, evento:'Salida', valor:total });
+    pintarResumen();
+
+    mostrarComprobante({ placa:S.cobro.placa, tiempo, metodo:metodoTexto, total });
+
+    S.cobro = null;
+    $('cobroBox').style.display = 'none';
+    $('sinSeleccion').style.display = 'block';
+    await cargarActivos();
+  }catch(e){ avisar('error', e.message); }
+  finally{ btn.disabled = false; btn.textContent = 'Cobrar y dar salida'; }
+});
+
+function mostrarComprobante(c){
+  $('cuerpoComprobante').innerHTML = `
+    <div class="text-success mb-2"><i class="fas fa-circle-check fs-1"></i></div>
+    <div class="placa placa-grande">${c.placa}</div>
+    <div class="text-muted small mb-3">${c.tiempo} · ${c.metodo}</div>
+    <div class="total-cobro text-success">${pesos(c.total)}</div>`;
+  bootstrap.Modal.getOrCreateInstance($('modalComprobante')).show();
+}
+
+/* ---------- resumen del día ---------- */
+async function cargarHistorial(){
+  try{
+    const hoy = new Date().toISOString().slice(0,10);
+    const arr = lista(await api(CFG.historial + '?fecha=' + hoy));
+    if(arr.length){
+      S.historial = arr.map(m => {
+        const salida = campo(m,['fecha_salida','hora_salida','salida']);
+        const val    = campo(m,['total','valor_total','valor'], null);
+        return {
+          hora: salida || campo(m,['fecha_entrada','hora_entrada','entrada']),
+          placa: campo(m,['placa'],'-'),
+          evento: salida ? 'Salida' : 'Entrada',
+          valor: val !== null ? Number(val) : null
+        };
+      });
+    }
+  }catch(e){ console.warn('historial:', e.message); }
+  pintarResumen();
+}
+
+function pintarResumen(){
+  const ent = S.historial.filter(h => h.evento === 'Entrada').length;
+  const sal = S.historial.filter(h => h.evento === 'Salida');
+  const tot = sal.reduce((a,h) => a + (Number(h.valor) || 0), 0);
+
+  $('contEntradas').textContent = ent;
+  $('contSalidas').textContent  = sal.length;
+  $('totalDia').textContent     = pesos(tot);
+
+  const tb = $('tbodyHistorial');
+  if(!S.historial.length){
+    tb.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Sin movimientos hoy.</td></tr>';
+    return;
+  }
+  tb.innerHTML = S.historial.map(h => `
+    <tr>
+      <td>${hora(h.hora)}</td>
+      <td class="placa">${h.placa}</td>
+      <td>${h.evento}</td>
+      <td class="text-end">${h.valor !== null && h.valor !== undefined ? pesos(h.valor) : '-'}</td>
+    </tr>`).join('');
+}
+
+/* ---------- arranque ---------- */
+(async function init(){
+  await sincronizarTurno();
+  await cargarTipos();
+  await cargarActivos();
+  await cargarHistorial();
+  setInterval(cargarActivos, 60000);
+  $('inPlaca').focus();
+})();
+</script>
+<script src="../js/menu.js"></script>
+</body>
+</html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Don Parqueo - Configuración</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="../css/dashboard.css" rel="stylesheet">
+<script>
+  // Guard: requiere token y rol admin
+  if (!localStorage.getItem('token')) { window.location.href = '/'; }
+  if (localStorage.getItem('userRole') !== 'admin') { window.location.href = '/admin/dashboard'; }
+</script>
+<style>
+  .lienzo { max-width:1100px; }
+
+  .rotulo { font-size:.75rem; color:#8a94a0; text-transform:uppercase; letter-spacing:.04em; }
+  .titulo-seccion { font-size:.9rem; font-weight:600; color:#495057; }
+  .suave { color:#adb5bd; }
+
+  .separador { border-left:1px solid #e9ecef; }
+
+  .campo-linea {
+    border:0; border-bottom:1px solid #dee2e6; border-radius:0;
+    box-shadow:none; padding-left:0; padding-right:0;
+  }
+  .campo-linea:focus { border-bottom-color:#0d6efd; box-shadow:none; background:transparent; }
+
+  .btn-texto {
+    background:none; border:0; padding:0; color:#0d6efd;
+    font-size:.85rem; text-decoration:none;
+  }
+  .btn-texto:disabled { color:#ced4da; }
+  .btn-texto.peligro { color:#dc3545; }
+
+  .linea-fina { border-top:1px solid #e9ecef; }
+
+  .avanzado-link { font-size:.85rem; text-decoration:none; color:#0d6efd; }
+
+  .alert { border:0; }
+
+  @media (max-width: 1199px){
+    .separador { border-left:0; border-top:1px solid #e9ecef; padding-top:2rem; margin-top:2rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- El menú lo escribe public/js/menu.js. -->
+<div class="sidebar">
+  <div class="sidebar-footer">
+    <a href="#" class="nav-link" id="btnLogout"><i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span></a>
+  </div>
+</div>
+
+<div class="main-content">
+
+  <nav class="navbar navbar-expand-lg navbar-light bg-white">
+    <div class="container-fluid">
+      <button class="btn btn-link sidebar-toggle"><i class="fas fa-bars"></i></button>
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <span class="nav-link small"><span id="userName">Usuario</span></span>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container lienzo py-5">
+
+    <div class="row g-4">
+
+      <!-- DATOS DEL PARQUEADERO -->
+      <div class="col-12 col-xl-6">
+        <div class="titulo-seccion">Datos del parqueadero</div>
+        <div class="small suave mb-4">Aparecen en los recibos que se le entregan al cliente.</div>
+
+        <form id="formEmpresa">
+
+          <div class="rotulo mb-1">Nombre del parqueadero</div>
+          <input type="text" id="e_nombre" class="form-control campo-linea mb-4" required>
+
+          <div class="row g-4 mb-4">
+            <div class="col-md-6">
+              <div class="rotulo mb-1">NIT</div>
+              <input type="text" id="e_nit" class="form-control campo-linea" required>
+            </div>
+            <div class="col-md-6">
+              <div class="rotulo mb-1">Teléfono</div>
+              <input type="text" id="e_telefono" class="form-control campo-linea">
+            </div>
+          </div>
+
+          <div class="rotulo mb-1">Dirección</div>
+          <input type="text" id="e_direccion" class="form-control campo-linea mb-4">
+
+          <div class="rotulo mb-1">Correo</div>
+          <input type="email" id="e_email" class="form-control campo-linea mb-4">
+
+          <div class="rotulo mb-2">Logo</div>
+          <img id="e_logo_preview" src="" alt="" class="img-fluid mb-3 d-none" style="max-height:80px">
+          <div class="d-flex align-items-center gap-3 flex-wrap">
+            <input type="file" id="e_logo_file" class="form-control form-control-sm campo-linea" accept="image/*" style="max-width:18rem">
+            <button type="button" id="btnUploadLogo" class="btn-texto text-nowrap">Subir logo</button>
+          </div>
+          <div class="small suave mt-2">Escoge la imagen y luego pulsa Subir.</div>
+
+          <div id="alertEmpresa" class="alert d-none mt-4 py-2 small" role="alert"></div>
+        </form>
+
+        <div class="pt-4 mt-4 linea-fina">
+          <button class="btn btn-primary" id="btnSaveEmpresa">Guardar datos</button>
+        </div>
+      </div>
+
+      <!-- CÓMO OPERA -->
+      <div class="col-12 col-xl-6 separador">
+        <div class="ps-xl-5">
+
+          <div class="titulo-seccion">Cómo opera el parqueadero</div>
+          <div class="small suave mb-4">Horario e impuestos.</div>
+
+          <form id="formConfig">
+
+            <div class="form-check form-switch mb-4">
+              <input class="form-check-input" type="checkbox" id="c_24h">
+              <label class="form-check-label" for="c_24h">Abrimos las 24 horas</label>
+            </div>
+
+            <div class="row g-4 mb-4">
+              <div class="col-md-6" id="wrapApertura">
+                <div class="rotulo mb-1">Abre a las</div>
+                <input type="time" id="c_apertura" class="form-control campo-linea" required>
+              </div>
+              <div class="col-md-6" id="wrapCierre">
+                <div class="rotulo mb-1">Cierra a las</div>
+                <input type="time" id="c_cierre" class="form-control campo-linea" required>
+              </div>
+            </div>
+
+            <div class="pt-4 mt-4 linea-fina">
+              <div class="rotulo mb-1">IVA</div>
+              <div class="d-flex align-items-center gap-2" style="max-width:9rem">
+                <input type="number" step="0.01" min="0" id="c_iva" class="form-control campo-linea" required>
+                <span class="suave">%</span>
+              </div>
+              <div class="small suave mt-2">Pon 0 si tus tarifas ya lo incluyen.</div>
+            </div>
+
+            <div class="pt-4 mt-4 linea-fina">
+              <a class="avanzado-link" data-bs-toggle="collapse" href="#avanzado" role="button">
+                Opciones avanzadas
+              </a>
+              <div class="collapse mt-4" id="avanzado">
+                <div class="row g-4">
+                  <div class="col-md-6">
+                    <div class="rotulo mb-1">Moneda</div>
+                    <input type="text" id="c_moneda" class="form-control campo-linea" value="COP" required>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="rotulo mb-1">Zona horaria</div>
+                    <input type="text" id="c_tz" class="form-control campo-linea" value="America/Bogota" required>
+                  </div>
+                </div>
+                <div class="small suave mt-3">
+                  Los cupos de cada tipo de vehículo se configuran en <a href="tarifas.html">Tarifas</a>.
+                </div>
+              </div>
+            </div>
+
+            <div id="alertConfig" class="alert d-none mt-4 py-2 small" role="alert"></div>
+          </form>
+
+          <div class="pt-4 mt-4 linea-fina">
+            <button class="btn btn-primary" id="btnSaveConfig">Guardar configuración</button>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- QR DE PAGO -->
+    <div class="pt-5 mt-5 linea-fina">
+      <div class="row g-4">
+        <div class="col-12 col-xl-6">
+
+          <div class="titulo-seccion">QR para que el cliente pague</div>
+          <div class="small suave mb-4">
+            Sube la foto del QR que ya tienes pegado en la caseta (Nequi, Daviplata,
+            Bancolombia, Bre-B). Al cobrar, el operador lo muestra en pantalla y el
+            cliente escanea desde ahí.
+          </div>
+
+          <img id="qr_preview" src="" alt="" class="img-fluid mb-3 d-none" style="max-height:200px">
+          <div class="small suave mb-3 d-none" id="qr_vacio">Todavía no hay QR cargado.</div>
+
+          <div class="d-flex align-items-center gap-3 flex-wrap">
+            <input type="file" id="qr_file" class="form-control form-control-sm campo-linea" accept="image/*" style="max-width:18rem">
+            <button type="button" id="btnSubirQR" class="btn-texto text-nowrap">Subir QR</button>
+            <button type="button" id="btnQuitarQR" class="btn-texto peligro text-nowrap d-none">Quitar</button>
+          </div>
+
+          <div class="small suave mt-3">
+            El QR es fijo y no lleva el monto. El cliente escanea, paga, y el operador
+            confirma en su celular antes de dar la salida. El sistema no verifica el pago.
+          </div>
+
+          <div id="alertQR" class="alert d-none mt-4 py-2 small" role="alert"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="position-fixed top-0 end-0 p-3" style="z-index:1100"><div id="toastContainer"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../js/configuracion.js"></script>
+<script src="../js/menu.js"></script>
+<script>
+/* Solo detalles de la vista. El guardado sigue en configuracion.js. */
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  var sw = $('c_24h');
+
+  function aplicar24h() {
+    var abierto24 = sw && sw.checked;
+    ['wrapApertura', 'wrapCierre'].forEach(function (id) {
+      var w = $(id);
+      if (w) w.classList.toggle('d-none', abierto24);
+    });
+  }
+
+  if (sw) {
+    sw.addEventListener('change', aplicar24h);
+    aplicar24h();
+    // configuracion.js carga los datos despues; se reevalua.
+    setTimeout(aplicar24h, 800);
+  }
+
+  // Vista previa del logo antes de subirlo.
+  var file = $('e_logo_file'), prev = $('e_logo_preview');
+  if (file && prev) {
+    file.addEventListener('change', function () {
+      var f = this.files && this.files[0];
+      if (!f) return;
+      var lector = new FileReader();
+      lector.onload = function (ev) {
+        prev.src = ev.target.result;
+        prev.classList.remove('d-none');
+      };
+      lector.readAsDataURL(f);
+    });
+  }
+
+  // Vista previa del QR antes de subirlo.
+  var qrFile = $('qr_file'), qrPrev = $('qr_preview'), qrVacio = $('qr_vacio');
+  if (qrFile && qrPrev) {
+    qrFile.addEventListener('change', function () {
+      var f = this.files && this.files[0];
+      if (!f) return;
+      var lector = new FileReader();
+      lector.onload = function (ev) {
+        qrPrev.src = ev.target.result;
+        qrPrev.classList.remove('d-none');
+        if (qrVacio) qrVacio.classList.add('d-none');
+      };
+      lector.readAsDataURL(f);
+    });
+  }
+})();
+</script>
+</body>
+</html>

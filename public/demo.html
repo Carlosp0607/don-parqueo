@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Don Parqueo · Demostración</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --indigo:#2C31A5;
+  --indigo-osc:#242996;
+  --indigo-cl:rgba(255,255,255,.13);
+  --indigo-txt:#dcdefa;
+  --tinta:#1b1d29;
+  --gris:#6b7280;
+  --gris-cl:#9ca3af;
+  --linea:#e8eaed;
+  --fondo:#ffffff;
+  --verde:#16a34a;
+  --verde-cl:#e8f6ed;
+  --rojo:#dc2626;
+  --rojo-cl:#fdecec;
+  --ambar:#f2b705;
+  --azul-cl:#eef0fd;
+  --morado:#7c3aed;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--fondo);
+  color:var(--tinta);
+  font-family:Poppins,"Segoe UI",Roboto,system-ui,-apple-system,sans-serif;
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;
+}
+button,input,select{font:inherit;color:inherit}
+h1,h2,h3{margin:0;font-weight:600;letter-spacing:-.01em}
+h1{font-size:26px;font-weight:600}
+h2{font-size:15px;font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---- banda demo ---- */
+.banda{
+  position:sticky;top:0;z-index:70;background:var(--ambar);color:#2a2100;
+  display:flex;align-items:center;gap:12px;padding:7px 18px;font-size:12.5px;font-weight:500;
+}
+.banda b{font-weight:600}
+.banda .salir{
+  margin-left:auto;background:#2a2100;color:var(--ambar);text-decoration:none;
+  border-radius:4px;padding:4px 12px;font-size:12px;font-weight:500;
+}
+.banda .salir:hover{background:#000}
+
+/* ---- armazón ---- */
+.app{display:flex;min-height:calc(100vh - 34px)}
+.lateral{
+  width:236px;flex:none;background:var(--indigo);color:#fff;
+  display:flex;flex-direction:column;position:sticky;top:34px;height:calc(100vh - 34px);
+}
+.logo{padding:26px 0 22px;text-align:center}
+.logo .circ{
+  width:46px;height:46px;margin:0 auto 10px;border-radius:50%;
+  border:1.5px solid rgba(255,255,255,.55);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:600;letter-spacing:.02em;
+}
+.logo .nom{font-size:16px;font-weight:600;letter-spacing:.01em}
+.nav{padding:8px 12px;display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto}
+.nav button{
+  display:flex;align-items:center;gap:13px;width:100%;
+  background:none;border:0;color:var(--indigo-txt);
+  padding:11px 14px;border-radius:7px;cursor:pointer;
+  font-size:14.5px;font-weight:400;text-align:left;
+}
+.nav button:hover{background:var(--indigo-cl);color:#fff}
+.nav button.on{background:var(--indigo-cl);color:#fff;font-weight:500}
+.nav svg{width:19px;height:19px;flex:none;stroke-width:1.8}
+.pie-lat{padding:14px 12px 22px;border-top:1px solid rgba(255,255,255,.14);margin:0 12px}
+.pie-lat button{
+  display:flex;align-items:center;gap:13px;width:100%;background:none;border:0;
+  color:var(--indigo-txt);padding:10px 14px;border-radius:7px;cursor:pointer;font-size:14.5px;
+}
+.pie-lat button:hover{background:var(--indigo-cl);color:#fff}
+
+.derecha{flex:1;min-width:0;display:flex;flex-direction:column}
+.encabezado{
+  height:58px;flex:none;display:flex;align-items:center;gap:14px;
+  padding:0 26px;border-bottom:1px solid var(--linea);
+  position:sticky;top:34px;background:#fff;z-index:40;
+}
+.hamb{background:none;border:0;cursor:pointer;color:var(--gris);font-size:19px;line-height:1;padding:4px}
+.hamb:hover{color:var(--tinta)}
+.estado-turno{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--tinta)}
+.punto{width:7px;height:7px;border-radius:50%;background:var(--gris-cl)}
+.punto.vivo{background:var(--verde)}
+.acciones-enc{margin-left:auto;display:flex;align-items:center;gap:22px}
+.enlace-verde{background:none;border:0;color:var(--verde);font-size:14px;font-weight:500;cursor:pointer;padding:0}
+.enlace-verde:hover{text-decoration:underline}
+.enlace-rojo{background:none;border:0;color:var(--rojo);font-size:14px;font-weight:500;cursor:pointer;padding:0}
+.enlace-rojo:hover{text-decoration:underline}
+.quien{font-size:14px;color:var(--tinta)}
+
+.lienzo{padding:26px;flex:1}
+.vista{display:none}
+.vista.on{display:block}
+.tit{margin-bottom:26px}
+.tit p{margin:4px 0 0;color:var(--gris);font-size:14px}
+
+/* ---- kpis planos ---- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:26px;margin-bottom:34px}
+.kpi .et{font-size:13px;color:var(--gris)}
+.kpi .val{font-size:44px;font-weight:500;letter-spacing:-.03em;line-height:1.15;margin:2px 0 3px}
+.kpi .val.chico{font-size:30px}
+.kpi .nota{font-size:12.5px;color:var(--gris-cl)}
+.kpi .raya{display:inline-block;width:34px;height:4px;background:var(--verde);border-radius:2px;margin:18px 0 12px}
+.kpi .raya.apagada{background:var(--tinta)}
+
+.bloque{margin-bottom:34px}
+.bloque > .cab{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:12px;flex-wrap:wrap}
+
+/* ---- tablas ---- */
+.marco{border:1px solid var(--linea);border-radius:9px;overflow:hidden}
+.marco.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{
+  text-align:left;font-weight:500;font-size:12.5px;color:var(--gris);
+  padding:11px 15px;background:#fafbfc;border-bottom:1px solid var(--linea);white-space:nowrap;
+}
+td{padding:12px 15px;border-bottom:1px solid #f2f4f6;vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:#fafbfc}
+td.der,th.der{text-align:right}
+
+.vacio{padding:46px 20px;text-align:center;color:var(--gris-cl);font-size:14px}
+.vacio b{display:block;color:var(--gris);font-weight:500;margin-bottom:5px;font-size:14.5px}
+
+.placa{
+  display:inline-flex;align-items:center;justify-content:center;
+  font-weight:600;letter-spacing:.06em;font-size:13px;
+  background:#f4f5f7;color:var(--tinta);border:1px solid var(--linea);
+  border-radius:5px;padding:4px 9px;white-space:nowrap;
+}
+.placa.moto{background:#fff}
+.placa.bici{background:#fff;border-style:dashed;letter-spacing:.02em;font-size:12px}
+
+.pil{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;white-space:nowrap}
+.pil.ok{background:var(--verde-cl);color:var(--verde)}
+.pil.gris{background:#f1f3f5;color:var(--gris)}
+.pil.mal{background:var(--rojo-cl);color:var(--rojo)}
+.pil.aviso{background:#fef6e0;color:#946400}
+.pil.efectivo{background:var(--verde-cl);color:var(--verde)}
+.pil.tarjeta{background:var(--azul-cl);color:var(--indigo)}
+.pil.qr{background:#f3ecfd;color:var(--morado)}
+
+/* ---- botones ---- */
+.btn{background:var(--indigo);color:#fff;border:1px solid var(--indigo);padding:9px 17px;border-radius:7px;font-size:14px;font-weight:500;cursor:pointer}
+.btn:hover{background:var(--indigo-osc)}
+.btn.sec{background:#fff;color:var(--tinta);border-color:#d7dae0}
+.btn.sec:hover{background:#f7f8fa}
+.btn.peli{background:var(--rojo);border-color:var(--rojo)}
+.btn.peli:hover{background:#b91c1c}
+.btn.chi{padding:6px 12px;font-size:13px;border-radius:6px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,.nav button:focus-visible,input:focus-visible,select:focus-visible,.tipo-op:focus-visible,.enlace-verde:focus-visible{outline:2px solid var(--indigo);outline-offset:2px}
+
+label.campo{display:block;margin-bottom:14px}
+label.campo .et{display:block;font-size:13px;color:var(--gris);margin-bottom:6px}
+input[type=text],input[type=number],select{
+  width:100%;padding:9px 11px;border:1px solid #d7dae0;border-radius:7px;background:#fff;font-size:14px;
+}
+input:disabled{background:#f5f6f8;color:var(--gris-cl)}
+input::placeholder{color:#b6bcc4}
+
+.tipos{display:flex;gap:9px;margin-bottom:16px}
+.tipo-op{flex:1;background:#fff;border:1.5px solid #d7dae0;border-radius:8px;padding:13px 6px;cursor:pointer;text-align:center}
+.tipo-op .nb{font-size:13.5px;font-weight:500}
+.tipo-op .tf{font-size:11.5px;color:var(--gris-cl);margin-top:2px}
+.tipo-op.on{border-color:var(--indigo);background:var(--azul-cl);color:var(--indigo)}
+.tipo-op.on .tf{color:var(--indigo)}
+
+/* ---- gráficas ---- */
+.barras{display:flex;align-items:flex-end;gap:7px;height:158px;padding:6px 4px 0}
+.barra{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;min-width:0}
+.barra .cuerpo{width:100%;background:var(--indigo);border-radius:4px 4px 0 0;min-height:3px}
+.barra .cuerpo.hoy{background:var(--verde)}
+.barra .dia{font-size:10.5px;color:var(--gris-cl);white-space:nowrap}
+.lineas{display:flex;flex-direction:column;gap:14px}
+.fila-l{display:grid;grid-template-columns:76px 1fr 100px;align-items:center;gap:12px;font-size:13.5px}
+.pista{height:8px;background:#eef0f2;border-radius:4px;overflow:hidden}
+.relleno{height:100%;border-radius:4px}
+.caja{border:1px solid var(--linea);border-radius:9px;padding:18px}
+
+.dos{display:grid;grid-template-columns:1.1fr .9fr;gap:22px;align-items:start}
+@media(max-width:1000px){.dos{grid-template-columns:1fr}}
+
+/* ---- modal ---- */
+.velo{position:fixed;inset:0;background:rgba(27,29,41,.5);display:none;align-items:center;justify-content:center;z-index:120;padding:18px}
+.velo.on{display:flex}
+.modal{background:#fff;border-radius:12px;width:100%;max-width:430px;box-shadow:0 24px 60px -14px rgba(0,0,0,.4);overflow:hidden}
+.mcab{padding:17px 20px;border-bottom:1px solid var(--linea);display:flex;justify-content:space-between;align-items:center}
+.mcuerpo{padding:20px;max-height:64vh;overflow-y:auto}
+.mpie{padding:14px 20px;border-top:1px solid var(--linea);display:flex;gap:9px;justify-content:flex-end}
+.cerrar{background:none;border:0;font-size:22px;line-height:1;cursor:pointer;color:var(--gris-cl);padding:0 4px}
+.cerrar:hover{color:var(--tinta)}
+.resumen{border:1px solid var(--linea);border-radius:8px;overflow:hidden;margin-bottom:16px}
+.resumen div{display:flex;justify-content:space-between;gap:14px;padding:10px 14px;border-bottom:1px solid #f2f4f6;font-size:13.5px}
+.resumen div:last-child{border-bottom:0}
+.resumen div.total{background:#fafbfc;font-weight:600;font-size:17px}
+.resumen .k{color:var(--gris)}
+
+.aviso{
+  position:fixed;bottom:44px;left:50%;transform:translateX(-50%) translateY(12px);
+  background:var(--tinta);color:#fff;padding:11px 20px;border-radius:8px;font-size:13.5px;
+  box-shadow:0 14px 34px -10px rgba(0,0,0,.5);opacity:0;pointer-events:none;
+  transition:opacity .2s,transform .2s;z-index:200;max-width:88vw;text-align:center;
+}
+.aviso.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.pie-demo{position:fixed;bottom:0;left:0;right:0;background:var(--ambar);color:#2a2100;text-align:center;font-size:11.5px;font-weight:500;padding:5px;z-index:60}
+.lienzo{padding-bottom:60px}
+
+@media(max-width:860px){
+  .app{flex-direction:column}
+  .lateral{width:auto;position:static;height:auto}
+  .logo{display:flex;align-items:center;gap:12px;padding:14px 18px;text-align:left}
+  .logo .circ{margin:0;width:36px;height:36px;font-size:13px}
+  .nav{flex-direction:row;overflow-x:auto;padding:0 10px 10px}
+  .nav button{width:auto;white-space:nowrap;padding:9px 12px}
+  .nav svg{display:none}
+  .pie-lat{display:none}
+  .encabezado{position:static;padding:0 16px;gap:10px}
+  .hamb{display:none}
+  .acciones-enc{gap:14px}
+  .quien{display:none}
+  .lienzo{padding:18px 16px 60px}
+  h1{font-size:22px}
+  .kpi .val{font-size:36px}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="banda">
+  <b>Modo demostración.</b> Datos ficticios. Nada de lo que hagas aquí se guarda.
+  <a class="salir" href="/">Salir</a>
+</div>
+
+<div class="app">
+  <aside class="lateral">
+    <div class="logo">
+      <div class="circ">PS</div>
+      <div class="nom">Don Parqueo</div>
+    </div>
+    <nav class="nav" id="nav">
+      <button data-v="inicio" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>Inicio</button>
+      <button data-v="vehiculos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v3h3v-3M17 16v3h3v-3"/><path d="M3 16h18v-4l-2-5H5l-2 5z"/><circle cx="7.5" cy="13.5" r="1"/><circle cx="16.5" cy="13.5" r="1"/></svg>Vehículos</button>
+      <button data-v="planes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Planes</button>
+      <button data-v="tarifas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12V5a2 2 0 0 1 2-2h7l9 9-9 9z"/><circle cx="8" cy="8" r="1.4"/></svg>Tarifas</button>
+      <button data-v="reportes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Reportes</button>
+      <button data-v="usuarios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 11a3 3 0 1 0 0-6"/><path d="M18 20c0-2.6-1-4.3-2.5-5.2"/></svg>Usuarios</button>
+      <button data-v="config"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Configuración</button>
+    </nav>
+    <div class="pie-lat">
+      <button onclick="location.href='/'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" style="width:19px;height:19px"><path d="M15 17l5-5-5-5M20 12H9M12 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6"/></svg>Cerrar Sesión</button>
+    </div>
+  </aside>
+
+  <div class="derecha">
+    <header class="encabezado">
+      <button class="hamb" aria-label="Menú">&#9776;</button>
+      <span class="estado-turno"><span class="punto" id="h-punto"></span><span id="h-turno">Turno cerrado</span></span>
+      <div class="acciones-enc">
+        <span id="h-accion"></span>
+        <span class="quien">Administrador</span>
+      </div>
+    </header>
+
+    <div class="lienzo">
+
+      <!-- ================= INICIO ================= -->
+      <section class="vista on" id="v-inicio">
+        <div class="tit">
+          <h1 id="saludo">Buenas tardes</h1>
+          <p id="fecha-hoy"></p>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="et">Adentro ahora</div>
+            <div class="val num" id="k-dentro">0</div>
+            <div class="nota" id="k-dentro-n">El parqueadero está vacío</div>
+          </div>
+          <div class="kpi">
+            <div class="et">Recaudado en el turno</div>
+            <div id="k-rec-cont"><span class="raya"></span></div>
+            <div class="nota" id="k-rec-n">No hay turno abierto</div>
+          </div>
+          <div class="kpi">
+            <div class="et">Debe haber en caja</div>
+            <div id="k-caja-cont"><span class="raya apagada"></span></div>
+            <div class="nota" id="k-caja-n">Abre el turno para empezar el día</div>
+          </div>
+        </div>
+
+        <div class="bloque">
+          <div class="cab">
+            <h2>Quién está adentro</h2>
+            <button class="btn chi" id="b-ingreso" onclick="abrirIngreso()">Registrar ingreso</button>
+          </div>
+          <div class="marco scroll">
+            <table>
+              <thead><tr><th>Placa</th><th>Tipo</th><th>Entrada</th><th>Tiempo</th><th class="der">Va en</th><th></th></tr></thead>
+              <tbody id="t-adentro"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bloque">
+          <div class="cab"><h2>Turnos anteriores</h2></div>
+          <div class="marco scroll">
+            <table>
+              <thead><tr><th>Cajero</th><th>Apertura</th><th>Cierre</th><th class="der">Efectivo</th><th class="der">Tarjeta</th><th class="der">QR</th><th class="der">Diferencia</th></tr></thead>
+              <tbody id="t-turnos"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= VEHICULOS ================= -->
+      <section class="vista" id="v-vehiculos">
+        <div class="tit"><h1>Vehículos</h1><p>Todos los que han entrado alguna vez al parqueadero.</p></div>
+        <div class="bloque">
+          <div class="cab">
+            <input type="text" id="buscar-veh" placeholder="Buscar placa o propietario" style="max-width:280px" oninput="pintarVehiculos()">
+            <button class="btn chi" onclick="abrirIngreso()">Registrar ingreso</button>
+          </div>
+          <div class="marco scroll">
+            <table>
+              <thead><tr><th>Placa</th><th>Tipo</th><th>Propietario</th><th class="der">Visitas</th><th>Última visita</th><th>Estado</th><th></th></tr></thead>
+              <tbody id="t-vehiculos"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= PLANES ================= -->
+      <section class="vista" id="v-planes">
+        <div class="tit"><h1>Planes</h1><p>Mensualidades activas. Un vehículo con plan vigente no paga al salir.</p></div>
+
+        <div class="kpis">
+          <div class="kpi"><div class="et">Planes vigentes</div><div class="val num" id="p-vig">0</div><div class="nota">Al día de hoy</div></div>
+          <div class="kpi"><div class="et">Por vencer</div><div class="val num" id="p-porvencer">0</div><div class="nota">En los próximos 7 días</div></div>
+          <div class="kpi"><div class="et">Facturado en planes</div><div class="val num chico" id="p-monto">$0</div><div class="nota">Suma de los planes vigentes</div></div>
+        </div>
+
+        <div class="bloque">
+          <div class="cab">
+            <h2>Suscriptores</h2>
+            <button class="btn chi" onclick="abrirPlan()">Nuevo plan</button>
+          </div>
+          <div class="marco scroll">
+            <table>
+              <thead><tr><th>Cliente</th><th>Placa</th><th>Plan</th><th class="der">Valor</th><th>Vence</th><th>Estado</th><th></th></tr></thead>
+              <tbody id="t-planes"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TARIFAS ================= -->
+      <section class="vista" id="v-tarifas">
+        <div class="tit"><h1>Tarifas</h1><p>Al guardar se cierra la vigencia anterior y empieza una nueva.</p></div>
+        <div class="bloque">
+          <div class="cab"><h2>Vigencia activa</h2><span style="font-size:12.5px;color:var(--gris-cl)" id="tarifa-desde"></span></div>
+          <div class="marco scroll">
+            <table>
+              <thead><tr><th>Tipo</th><th class="der">Valor minuto</th><th class="der">Valor hora</th><th class="der">Tope día</th><th class="der">Minutos de gracia</th></tr></thead>
+              <tbody id="t-tarifas"></tbody>
+            </table>
+          </div>
+          <div style="display:flex;gap:9px;justify-content:flex-end;margin-top:14px">
+            <button class="btn sec" onclick="pintarTarifas()">Descartar cambios</button>
+            <button class="btn" onclick="guardarTarifas()">Guardar nueva vigencia</button>
+          </div>
+        </div>
+        <div class="bloque">
+          <h2 style="margin-bottom:10px">Cómo se calcula el cobro</h2>
+          <div class="caja" style="color:var(--gris);max-width:66ch">
+            <p style="margin:0 0 10px">Se cobra por minuto desde la entrada. Si el vehículo sale dentro de los minutos de gracia, no paga nada.</p>
+            <p style="margin:0 0 10px">Cuando el acumulado por minuto supera el tope del día, se cobra el tope y ahí se queda hasta completar 24 horas.</p>
+            <p style="margin:0">El valor hora es el que se le informa al cliente en la entrada. El cobro real siempre sale del valor minuto.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= REPORTES ================= -->
+      <section class="vista" id="v-reportes">
+        <div class="tit"><h1>Reportes</h1><p>Movimientos cerrados y su recaudo.</p></div>
+        <div class="bloque">
+          <div class="cab">
+            <select id="rango" style="width:auto" onchange="pintarReportes()">
+              <option value="1">Hoy</option>
+              <option value="7" selected>Últimos 7 días</option>
+              <option value="14">Últimos 14 días</option>
+            </select>
+            <button class="btn sec chi" onclick="avisar('La exportación a Excel está disponible en la versión completa.')">Exportar a Excel</button>
+          </div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi"><div class="et">Recaudo</div><div class="val num chico" id="r-total">$0</div><div class="nota" id="r-total-n"></div></div>
+          <div class="kpi"><div class="et">Movimientos</div><div class="val num" id="r-movs">0</div><div class="nota">Salidas facturadas</div></div>
+          <div class="kpi"><div class="et">Ticket promedio</div><div class="val num chico" id="r-ticket">$0</div><div class="nota">Por vehículo</div></div>
+          <div class="kpi"><div class="et">Tipo más frecuente</div><div class="val chico" id="r-tipo">—</div><div class="nota" id="r-tipo-n"></div></div>
+        </div>
+
+        <div class="dos bloque">
+          <div>
+            <h2 style="margin-bottom:10px">Recaudo por día</h2>
+            <div class="caja"><div class="barras" id="r-barras"></div></div>
+          </div>
+          <div>
+            <h2 style="margin-bottom:10px">Recaudo por método de pago</h2>
+            <div class="caja"><div class="lineas" id="r-metodos"></div></div>
+          </div>
+        </div>
+
+        <div class="bloque">
+          <div class="cab"><h2>Detalle de movimientos</h2><span style="font-size:12.5px;color:var(--gris-cl)" id="r-conteo"></span></div>
+          <div class="marco scroll">
+            <table>
+              <thead><tr><th>Placa</th><th>Tipo</th><th>Entrada</th><th>Salida</th><th class="der">Minutos</th><th>Método</th><th class="der">Total</th></tr></thead>
+              <tbody id="t-reportes"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= USUARIOS ================= -->
+      <section class="vista" id="v-usuarios">
+        <div class="tit"><h1>Usuarios</h1><p>Quién puede entrar al sistema y con qué permisos.</p></div>
+        <div class="bloque">
+          <div class="cab"><h2>Cuentas de la empresa</h2><button class="btn chi" onclick="abrirUsuario()">Crear usuario</button></div>
+          <div class="marco scroll">
+            <table>
+              <thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Última entrada</th><th>Estado</th><th></th></tr></thead>
+              <tbody id="t-usuarios"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="bloque">
+          <h2 style="margin-bottom:10px">Qué puede hacer cada rol</h2>
+          <div class="marco">
+            <table>
+              <thead><tr><th>Acción</th><th>Administrador</th><th>Operador</th></tr></thead>
+              <tbody>
+                <tr><td>Registrar ingresos y salidas</td><td>Sí</td><td>Sí</td></tr>
+                <tr><td>Abrir y cerrar su turno</td><td>Sí</td><td>Sí</td></tr>
+                <tr><td>Cambiar tarifas</td><td>Sí</td><td>No</td></tr>
+                <tr><td>Ver reportes de todos los turnos</td><td>Sí</td><td>No</td></tr>
+                <tr><td>Crear usuarios y planes</td><td>Sí</td><td>No</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= CONFIGURACION ================= -->
+      <section class="vista" id="v-config">
+        <div class="tit"><h1>Configuración</h1><p>Datos que salen en la factura y reglas de operación.</p></div>
+        <div class="dos">
+          <div>
+            <h2 style="margin-bottom:10px">Datos de la empresa</h2>
+            <div class="caja">
+              <label class="campo"><span class="et">Razón social</span><input type="text" id="e-nombre"></label>
+              <label class="campo"><span class="et">NIT</span><input type="text" id="e-nit"></label>
+              <label class="campo"><span class="et">Dirección</span><input type="text" id="e-dir"></label>
+              <label class="campo"><span class="et">Teléfono</span><input type="text" id="e-tel"></label>
+              <button class="btn" onclick="guardarEmpresa()">Guardar datos</button>
+            </div>
+          </div>
+          <div>
+            <h2 style="margin-bottom:10px">Operación</h2>
+            <div class="caja">
+              <label class="campo"><span class="et">Cupos totales</span><input type="number" id="e-cupos" min="1"></label>
+              <label class="campo"><span class="et">Base de caja sugerida</span><input type="number" id="e-base" min="0" step="1000"></label>
+              <label class="campo"><span class="et">Métodos de pago habilitados</span>
+                <select id="e-metodos">
+                  <option value="todos">Efectivo, tarjeta y QR</option>
+                  <option value="efqr">Efectivo y QR</option>
+                  <option value="ef">Solo efectivo</option>
+                </select>
+              </label>
+              <button class="btn" onclick="guardarConfig()">Guardar operación</button>
+            </div>
+            <h2 style="margin:26px 0 10px">Logo</h2>
+            <div class="caja" style="display:flex;gap:16px;align-items:center">
+              <div style="width:62px;height:62px;flex:none;border:1px dashed #d7dae0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--gris-cl);font-size:11px;text-align:center">Sin<br>logo</div>
+              <div style="color:var(--gris);font-size:13.5px">
+                <p style="margin:0 0 9px">El logo se guarda dentro de la base de datos y sale en la factura impresa.</p>
+                <button class="btn sec chi" onclick="avisar('La carga de archivos está deshabilitada en la demostración.')">Subir logo</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div class="velo" id="velo">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="mcab"><h2 id="m-titulo">Título</h2><button class="cerrar" onclick="cerrarModal()" aria-label="Cerrar">&times;</button></div>
+    <div class="mcuerpo" id="m-cuerpo"></div>
+    <div class="mpie" id="m-pie"></div>
+  </div>
+</div>
+
+<div class="aviso" id="aviso"></div>
+<div class="pie-demo">Modo demostración · los datos son ficticios y se reinician al recargar</div>
+
+<script>
+/* ================= utilidades ================= */
+const $ = s => document.querySelector(s);
+const cop = n => '$' + Math.round(n).toLocaleString('es-CO');
+const d2 = n => String(n).padStart(2,'0');
+const hhmm = d => d2(d.getHours()) + ':' + d2(d.getMinutes());
+const ddmm = d => d2(d.getDate()) + '/' + d2(d.getMonth()+1);
+const fh = d => ddmm(d) + ' ' + hhmm(d);
+const mismoDia = (a,b) => a.toDateString() === b.toDateString();
+const minsEntre = (a,b) => Math.max(0, Math.floor((b-a)/60000));
+function duracion(m){ if(m<60) return m+' min'; const h=Math.floor(m/60), r=m%60; return r? h+' h '+r+' min' : h+' h'; }
+function rng(s){ return function(){ s|=0; s=s+0x6D2B79F5|0; let t=Math.imul(s^s>>>15,1|s); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const az = rng(20260905);
+const elegir = a => a[Math.floor(az()*a.length)];
+const entre = (a,b) => a + Math.floor(az()*(b-a+1));
+
+function avisar(t){ const a=$('#aviso'); a.textContent=t; a.classList.add('on'); clearTimeout(a._t); a._t=setTimeout(()=>a.classList.remove('on'),3200); }
+function abrirModal(t,c,p){ $('#m-titulo').textContent=t; $('#m-cuerpo').innerHTML=c; $('#m-pie').innerHTML=p; $('#velo').classList.add('on'); }
+function cerrarModal(){ $('#velo').classList.remove('on'); }
+$('#velo').addEventListener('click', e=>{ if(e.target.id==='velo') cerrarModal(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') cerrarModal(); });
+
+/* ================= datos ================= */
+const DB = {
+  empresa:{ nombre:'Parqueadero El Portal', nit:'901.455.882-3', dir:'Calle 127 # 15-42, Bogotá', tel:'601 742 8890' },
+  config:{ cupos:60, base:80000, metodos:'todos' },
+  tarifas:{
+    carro:{ nombre:'Carro', minuto:80, hora:4500, dia:24000, gracia:10 },
+    moto:{ nombre:'Moto', minuto:35, hora:2000, dia:11000, gracia:10 },
+    bici:{ nombre:'Bici', minuto:12, hora:1500, dia:5000, gracia:15 }
+  },
+  tarifaDesde:new Date(Date.now()-41*864e5),
+  vehiculos:[], movimientos:[], turnos:[], turno:null, planes:[], usuarios:[], seqBici:0
+};
+
+const L='ABCDEFGHJKLMNPRSTVWXYZ';
+const NOM=['Andrés Gaitán','Marcela Ospina','Julián Restrepo','Paola Mendoza','Iván Cardozo','Laura Betancur','Camilo Urrego','Sandra Villalba','Óscar Peñaloza','Natalia Quiroga','Fernando Arboleda','Ximena Sandoval','Rubén Pardo','Gloria Nieto','Mauricio Salcedo'];
+const MET=['efectivo','efectivo','efectivo','tarjeta','qr','qr'];
+const NOMMET={efectivo:'Efectivo',tarjeta:'Tarjeta',qr:'QR'};
+const COLMET={efectivo:'var(--verde)',tarjeta:'var(--indigo)',qr:'var(--morado)'};
+
+const plCarro=()=>L[Math.floor(az()*22)]+L[Math.floor(az()*22)]+L[Math.floor(az()*22)]+entre(100,999);
+const plMoto=()=>L[Math.floor(az()*22)]+L[Math.floor(az()*22)]+L[Math.floor(az()*22)]+entre(10,99)+L[Math.floor(az()*22)];
+
+function crearVeh(placa,tipo,dueno){ const v={placa,tipo,dueno:dueno||''}; DB.vehiculos.push(v); return v; }
+const buscarVeh = p => DB.vehiculos.find(v=>v.placa===p);
+
+function cobro(tipo,min){
+  const t=DB.tarifas[tipo];
+  if(min<=t.gracia) return 0;
+  const dias=Math.floor(min/1440), r=min%1440;
+  return dias*t.dia + Math.min(r*t.minuto, t.dia);
+}
+const tienePlan = placa => DB.planes.some(p=>p.placa===placa && p.vence > new Date());
+
+/* --- semilla --- */
+(function(){
+  for(let i=0;i<26;i++) crearVeh(plCarro(),'carro', az()<.55?elegir(NOM):'');
+  for(let i=0;i<14;i++) crearVeh(plMoto(),'moto', az()<.5?elegir(NOM):'');
+  for(let i=0;i<4;i++){ DB.seqBici++; crearVeh('BICI-'+d2(DB.seqBici),'bici',elegir(NOM)); }
+
+  const ahora=new Date();
+  for(let d=13;d>=0;d--){
+    const dia=new Date(ahora-d*864e5).getDay();
+    let n = dia===0?entre(9,15) : dia===6?entre(22,32) : entre(18,28);
+    if(d===0) n=entre(10,16);
+    for(let i=0;i<n;i++){
+      const v=elegir(DB.vehiculos);
+      const ent=new Date(ahora-d*864e5); ent.setHours(entre(6,19),entre(0,59),0,0);
+      const min = az()<.14?entre(180,620):entre(18,175);
+      const sal=new Date(ent.getTime()+min*60000);
+      if(sal>ahora) continue;
+      const tot=cobro(v.tipo,min);
+      DB.movimientos.push({id:0,placa:v.placa,tipo:v.tipo,entrada:ent,salida:sal,minutos:min,total:tot,metodo:tot===0?'efectivo':elegir(MET),estado:'cerrado'});
+    }
+  }
+  DB.movimientos.sort((a,b)=>a.entrada-b.entrada).forEach((m,i)=>m.id=i+1);
+
+  const dentro=[];
+  while(dentro.length<11){
+    const v=elegir(DB.vehiculos);
+    if(dentro.includes(v.placa)) continue;
+    dentro.push(v.placa);
+    DB.movimientos.push({id:DB.movimientos.length+1,placa:v.placa,tipo:v.tipo,entrada:new Date(ahora.getTime()-entre(6,260)*60000),salida:null,minutos:null,total:null,metodo:null,estado:'abierto'});
+  }
+
+  const cajeros=['Diana Rojas','Héctor Malagón','Yesica Pineda'];
+  for(let d=3;d>=1;d--){
+    const ap=new Date(ahora-d*864e5); ap.setHours(6,0,0,0);
+    const ci=new Date(ap.getTime()+14*36e5);
+    const md=DB.movimientos.filter(m=>m.estado==='cerrado'&&mismoDia(m.salida,ap));
+    const por=k=>md.filter(x=>x.metodo===k).reduce((s,x)=>s+x.total,0);
+    DB.turnos.push({cajero:cajeros[d%3],apertura:ap,cierre:ci,efectivo:por('efectivo'),tarjeta:por('tarjeta'),qr:por('qr'),diferencia: az()<.5?0:entre(-1,1)*entre(1,4)*500});
+  }
+
+  const ap=new Date(); ap.setHours(6,0,0,0);
+  DB.turno={cajero:'Diana Rojas',apertura: ap.getTime()>Date.now()? new Date(Date.now()-3*36e5) : ap, base:DB.config.base};
+
+  const tiposPlan=[{n:'Mensual carro',v:185000,d:30},{n:'Mensual moto',v:90000,d:30},{n:'Quincenal carro',v:105000,d:15}];
+  for(let i=0;i<7;i++){
+    const v=elegir(DB.vehiculos.filter(x=>x.tipo!=='bici'));
+    if(DB.planes.some(p=>p.placa===v.placa)) continue;
+    const tp = v.tipo==='moto' ? tiposPlan[1] : elegir([tiposPlan[0],tiposPlan[2]]);
+    const inicio=new Date(Date.now()-entre(1,34)*864e5);
+    DB.planes.push({cliente: v.dueno || elegir(NOM), placa:v.placa, plan:tp.n, valor:tp.v, inicio, vence:new Date(inicio.getTime()+tp.d*864e5)});
+  }
+
+  DB.usuarios=[
+    {nombre:'Diana Rojas',usuario:'drojas',rol:'Administrador',ultima:new Date(Date.now()-2*36e5),activo:true},
+    {nombre:'Héctor Malagón',usuario:'hmalagon',rol:'Operador',ultima:new Date(Date.now()-26*36e5),activo:true},
+    {nombre:'Yesica Pineda',usuario:'ypineda',rol:'Operador',ultima:new Date(Date.now()-50*36e5),activo:true},
+    {nombre:'Wilson Cárdenas',usuario:'wcardenas',rol:'Operador',ultima:new Date(Date.now()-19*864e5),activo:false}
+  ];
+})();
+
+/* ================= navegación ================= */
+const pintores={inicio:pintarInicio,vehiculos:pintarVehiculos,planes:pintarPlanes,tarifas:pintarTarifas,reportes:pintarReportes,usuarios:pintarUsuarios,config:pintarConfig};
+function irA(v){
+  document.querySelectorAll('.vista').forEach(s=>s.classList.toggle('on', s.id==='v-'+v));
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.v===v));
+  pintores[v](); window.scrollTo(0,0);
+}
+$('#nav').addEventListener('click', e=>{ const b=e.target.closest('button'); if(b) irA(b.dataset.v); });
+
+/* ================= encabezado ================= */
+function pintarEncabezado(){
+  const ab=!!DB.turno;
+  $('#h-punto').classList.toggle('vivo',ab);
+  $('#h-turno').textContent = ab ? 'Turno abierto desde las '+hhmm(DB.turno.apertura) : 'Turno cerrado';
+  $('#h-accion').innerHTML = ab
+    ? '<button class="enlace-rojo" onclick="abrirCierre()">Cerrar turno</button>'
+    : '<button class="enlace-verde" onclick="abrirApertura()">Abrir turno</button>';
+}
+
+/* ================= inicio ================= */
+const chip = (p,t) => `<span class="placa ${t}">${p}</span>`;
+
+function pintarInicio(){
+  pintarEncabezado();
+  const h=new Date().getHours();
+  $('#saludo').textContent = h<12?'Buenos días' : h<19?'Buenas tardes':'Buenas noches';
+  $('#fecha-hoy').textContent = new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'});
+
+  const abiertos=DB.movimientos.filter(m=>m.estado==='abierto');
+  $('#k-dentro').textContent=abiertos.length;
+  $('#k-dentro-n').textContent = abiertos.length ? 'De '+DB.config.cupos+' cupos · '+Math.round(abiertos.length/DB.config.cupos*100)+'% ocupado' : 'El parqueadero está vacío';
+
+  if(DB.turno){
+    const x=totalesTurno(), rec=x.efectivo+x.tarjeta+x.qr;
+    $('#k-rec-cont').innerHTML='<div class="val num chico">'+cop(rec)+'</div>';
+    $('#k-rec-n').textContent=x.n+' movimientos cobrados';
+    $('#k-caja-cont').innerHTML='<div class="val num chico">'+cop(DB.turno.base+x.efectivo)+'</div>';
+    $('#k-caja-n').textContent='Base '+cop(DB.turno.base)+' más efectivo';
+  } else {
+    $('#k-rec-cont').innerHTML='<span class="raya"></span>';
+    $('#k-rec-n').textContent='No hay turno abierto';
+    $('#k-caja-cont').innerHTML='<span class="raya apagada"></span>';
+    $('#k-caja-n').textContent='Abre el turno para empezar el día';
+  }
+
+  $('#b-ingreso').disabled=!DB.turno;
+  const ahora=new Date();
+  $('#t-adentro').innerHTML = !DB.turno
+    ? '<tr><td colspan="6"><div class="vacio">El turno está cerrado. Ábrelo aquí arriba para empezar el día.</div></td></tr>'
+    : (abiertos.length
+      ? abiertos.sort((a,b)=>b.entrada-a.entrada).map(m=>{
+          const min=minsEntre(m.entrada,ahora), pl=tienePlan(m.placa);
+          return `<tr>
+            <td>${chip(m.placa,m.tipo)}${pl?' <span class="pil ok">Plan</span>':''}</td>
+            <td>${DB.tarifas[m.tipo].nombre}</td>
+            <td class="num">${hhmm(m.entrada)}</td>
+            <td class="num">${duracion(min)}</td>
+            <td class="der num">${pl?'Sin cobro':cop(cobro(m.tipo,min))}</td>
+            <td class="der"><button class="btn chi" onclick="abrirSalida(${m.id})">Cobrar salida</button></td>
+          </tr>`;
+        }).join('')
+      : '<tr><td colspan="6"><div class="vacio"><b>El parqueadero está vacío</b>Registra un ingreso y aparecerá aquí.</div></td></tr>');
+
+  $('#t-turnos').innerHTML = DB.turnos.length
+    ? [...DB.turnos].reverse().map(t=>`<tr>
+        <td>${t.cajero}</td><td class="num">${fh(t.apertura)}</td><td class="num">${fh(t.cierre)}</td>
+        <td class="der num">${cop(t.efectivo)}</td><td class="der num">${cop(t.tarjeta)}</td><td class="der num">${cop(t.qr)}</td>
+        <td class="der num" style="color:${t.diferencia===0?'var(--verde)':'var(--rojo)'};font-weight:500">${t.diferencia===0?'Cuadrado':cop(t.diferencia)}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="7"><div class="vacio"><b>Todavía no hay turnos cerrados</b>El primer cierre aparecerá aquí.</div></td></tr>';
+}
+
+/* ================= ingreso ================= */
+let tipoSel='carro';
+function abrirIngreso(){
+  if(!DB.turno) return avisar('Abre el turno antes de registrar ingresos.');
+  tipoSel='carro';
+  abrirModal('Registrar ingreso', `
+    <div class="tipos" id="sel-tipo">
+      ${['carro','moto','bici'].map((t,i)=>`<button class="tipo-op ${i===0?'on':''}" data-t="${t}"><div class="nb">${DB.tarifas[t].nombre}</div><div class="tf num">${cop(DB.tarifas[t].hora)}/hora</div></button>`).join('')}
+    </div>
+    <label class="campo"><span class="et">Placa</span><input type="text" id="m-placa" placeholder="ABC123" maxlength="8" autocomplete="off"></label>
+    <label class="campo"><span class="et">Propietario <span style="color:var(--gris-cl)">(opcional)</span></span><input type="text" id="m-dueno" placeholder="Nombre de quien lo deja" autocomplete="off"></label>
+    <p style="font-size:12.5px;color:var(--gris-cl);margin:0">Si la placa no existe, el vehículo se crea solo. Las bicis reciben un código automático.</p>
+  `, `<button class="btn sec" onclick="cerrarModal()">Cancelar</button><button class="btn" onclick="confirmarIngreso()">Registrar ingreso</button>`);
+
+  $('#sel-tipo').addEventListener('click', e=>{
+    const b=e.target.closest('.tipo-op'); if(!b) return;
+    tipoSel=b.dataset.t;
+    document.querySelectorAll('.tipo-op').forEach(x=>x.classList.toggle('on',x===b));
+    const i=$('#m-placa');
+    i.placeholder = tipoSel==='carro'?'ABC123' : tipoSel==='moto'?'ABC12D':'Se asigna solo';
+    i.disabled = tipoSel==='bici'; if(tipoSel==='bici') i.value='';
+  });
+  setTimeout(()=>$('#m-placa').focus(),50);
+}
+function confirmarIngreso(){
+  let placa=$('#m-placa').value.trim().toUpperCase().replace(/\s+/g,'');
+  const dueno=$('#m-dueno').value.trim();
+  if(tipoSel==='bici'){ DB.seqBici++; placa='BICI-'+d2(DB.seqBici); }
+  else{
+    if(!placa) return avisar('Escribe la placa para registrar el ingreso.');
+    if(placa.length<5) return avisar('La placa está incompleta.');
+  }
+  if(DB.movimientos.some(m=>m.estado==='abierto'&&m.placa===placa)) return avisar('La placa '+placa+' ya está adentro.');
+  if(DB.movimientos.filter(m=>m.estado==='abierto').length>=DB.config.cupos) return avisar('No hay cupos disponibles.');
+
+  let v=buscarVeh(placa); const nuevo=!v;
+  if(!v) v=crearVeh(placa,tipoSel,dueno); else if(dueno) v.dueno=dueno;
+  DB.movimientos.push({id:DB.movimientos.length+1,placa,tipo:v.tipo,entrada:new Date(),salida:null,minutos:null,total:null,metodo:null,estado:'abierto'});
+  cerrarModal(); pintarInicio();
+  avisar(nuevo?'Vehículo creado e ingreso registrado: '+placa:'Ingreso registrado: '+placa);
+}
+
+/* ================= salida ================= */
+function abrirSalida(id){
+  const m=DB.movimientos.find(x=>x.id===id); if(!m) return;
+  const ahora=new Date(), min=minsEntre(m.entrada,ahora), t=DB.tarifas[m.tipo];
+  const pl=tienePlan(m.placa);
+  const total = pl?0:cobro(m.tipo,min);
+  const ops = DB.config.metodos==='ef'?['efectivo'] : DB.config.metodos==='efqr'?['efectivo','qr'] : ['efectivo','tarjeta','qr'];
+
+  abrirModal('Cobro de salida', `
+    <div style="text-align:center;margin-bottom:16px">${chip(m.placa,m.tipo)}</div>
+    <div class="resumen">
+      <div><span class="k">Tipo</span><span>${t.nombre}</span></div>
+      <div><span class="k">Entrada</span><span class="num">${fh(m.entrada)}</span></div>
+      <div><span class="k">Salida</span><span class="num">${fh(ahora)}</span></div>
+      <div><span class="k">Permanencia</span><span class="num">${duracion(min)}</span></div>
+      <div><span class="k">Tarifa aplicada</span><span class="num">${pl?'Plan mensual':cop(t.minuto)+' por minuto'}</span></div>
+      <div class="total"><span>Total a pagar</span><span class="num">${cop(total)}</span></div>
+    </div>
+    ${pl?'<p style="font-size:13px;color:var(--verde);margin:0 0 12px;font-weight:500">Este vehículo tiene plan vigente. No paga la salida.</p>':''}
+    ${(!pl&&total===0)?'<p style="font-size:13px;color:var(--verde);margin:0 0 12px;font-weight:500">Salió dentro de los '+t.gracia+' minutos de gracia. No paga.</p>':''}
+    <label class="campo" ${total===0?'style="display:none"':''}>
+      <span class="et">Método de pago</span>
+      <select id="m-metodo">${ops.map(o=>`<option value="${o}">${NOMMET[o]}</option>`).join('')}</select>
+    </label>
+  `, `<button class="btn sec" onclick="cerrarModal()">Cancelar</button><button class="btn" onclick="confirmarSalida(${id},${min},${total})">Confirmar y facturar</button>`);
+}
+function confirmarSalida(id,min,total){
+  const m=DB.movimientos.find(x=>x.id===id); if(!m) return;
+  const s=$('#m-metodo');
+  m.salida=new Date(); m.minutos=min; m.total=total;
+  m.metodo = total===0?'efectivo':(s?s.value:'efectivo');
+  m.estado='cerrado';
+  cerrarModal(); pintarInicio();
+  avisar('Salida facturada: '+m.placa+' · '+cop(total));
+}
+
+/* ================= turnos ================= */
+function totalesTurno(){
+  const t=DB.turno; if(!t) return {efectivo:0,tarjeta:0,qr:0,n:0};
+  const ms=DB.movimientos.filter(m=>m.estado==='cerrado'&&m.salida>=t.apertura);
+  const por=k=>ms.filter(m=>m.metodo===k).reduce((s,m)=>s+m.total,0);
+  return {efectivo:por('efectivo'),tarjeta:por('tarjeta'),qr:por('qr'),n:ms.length};
+}
+function abrirApertura(){
+  abrirModal('Abrir turno', `
+    <label class="campo"><span class="et">Cajero</span><input type="text" id="m-cajero" value="Diana Rojas"></label>
+    <label class="campo"><span class="et">Base inicial en caja</span><input type="number" id="m-base" value="${DB.config.base}" step="1000" min="0"></label>
+    <p style="font-size:13px;color:var(--gris);margin:0">Desde la apertura, todo lo que se cobre queda asociado a este turno.</p>
+  `, `<button class="btn sec" onclick="cerrarModal()">Cancelar</button><button class="btn" onclick="confirmarApertura()">Abrir turno</button>`);
+}
+function confirmarApertura(){
+  DB.turno={cajero:$('#m-cajero').value.trim()||'Cajero',apertura:new Date(),base:Number($('#m-base').value)||0};
+  cerrarModal(); pintarInicio();
+  avisar('Turno abierto a las '+hhmm(DB.turno.apertura));
+}
+function abrirCierre(){
+  const x=totalesTurno(), t=DB.turno, esp=t.base+x.efectivo;
+  abrirModal('Cerrar turno', `
+    <div class="resumen">
+      <div><span class="k">Cajero</span><span>${t.cajero}</span></div>
+      <div><span class="k">Apertura</span><span class="num">${fh(t.apertura)}</span></div>
+      <div><span class="k">Base inicial</span><span class="num">${cop(t.base)}</span></div>
+      <div><span class="k">Efectivo cobrado</span><span class="num">${cop(x.efectivo)}</span></div>
+      <div><span class="k">Tarjeta</span><span class="num">${cop(x.tarjeta)}</span></div>
+      <div><span class="k">QR</span><span class="num">${cop(x.qr)}</span></div>
+      <div class="total"><span>Debe haber en caja</span><span class="num">${cop(esp)}</span></div>
+    </div>
+    <label class="campo"><span class="et">Efectivo contado en la caja</span>
+      <input type="number" id="m-contado" value="${esp}" step="500" min="0" oninput="calcDif(${esp})"></label>
+    <div id="m-dif" style="font-size:13.5px;font-weight:500;color:var(--verde)">Caja cuadrada</div>
+  `, `<button class="btn sec" onclick="cerrarModal()">Cancelar</button><button class="btn peli" onclick="confirmarCierre(${esp})">Cerrar turno</button>`);
+}
+function calcDif(esp){
+  const d=(Number($('#m-contado').value)||0)-esp, e=$('#m-dif');
+  if(d===0){ e.textContent='Caja cuadrada'; e.style.color='var(--verde)'; }
+  else if(d>0){ e.textContent='Sobran '+cop(d)+' en la caja'; e.style.color='var(--indigo)'; }
+  else { e.textContent='Faltan '+cop(Math.abs(d))+' en la caja'; e.style.color='var(--rojo)'; }
+}
+function confirmarCierre(esp){
+  const c=Number($('#m-contado').value)||0, x=totalesTurno(), t=DB.turno;
+  DB.turnos.push({cajero:t.cajero,apertura:t.apertura,cierre:new Date(),efectivo:x.efectivo,tarjeta:x.tarjeta,qr:x.qr,diferencia:c-esp});
+  DB.turno=null;
+  cerrarModal(); pintarInicio();
+  avisar('Turno cerrado. Diferencia: '+(c-esp===0?'ninguna':cop(c-esp)));
+}
+
+/* ================= vehículos ================= */
+function pintarVehiculos(){
+  const q=($('#buscar-veh').value||'').trim().toUpperCase();
+  const lista=DB.vehiculos.filter(v=>!q||v.placa.includes(q)||v.dueno.toUpperCase().includes(q));
+  if(!lista.length){ $('#t-vehiculos').innerHTML='<tr><td colspan="7"><div class="vacio"><b>Ningún vehículo coincide</b>Prueba con otra placa o borra la búsqueda.</div></td></tr>'; return; }
+  $('#t-vehiculos').innerHTML=lista.map(v=>{
+    const ms=DB.movimientos.filter(m=>m.placa===v.placa), ult=ms[ms.length-1];
+    const dentro=ms.some(m=>m.estado==='abierto');
+    return `<tr>
+      <td>${chip(v.placa,v.tipo)}${tienePlan(v.placa)?' <span class="pil ok">Plan</span>':''}</td>
+      <td>${DB.tarifas[v.tipo].nombre}</td>
+      <td>${v.dueno||'<span style="color:var(--gris-cl)">Sin registrar</span>'}</td>
+      <td class="der num">${ms.length}</td>
+      <td class="num">${ult?fh(ult.entrada):'—'}</td>
+      <td>${dentro?'<span class="pil ok">Adentro</span>':'<span class="pil gris">Afuera</span>'}</td>
+      <td class="der"><button class="btn sec chi" onclick="verHistorial('${v.placa}')">Historial</button></td>
+    </tr>`;
+  }).join('');
+}
+function verHistorial(placa){
+  const v=buscarVeh(placa);
+  const ms=DB.movimientos.filter(m=>m.placa===placa);
+  const gast=ms.filter(m=>m.total).reduce((s,m)=>s+m.total,0);
+  abrirModal('Historial del vehículo', `
+    <div style="text-align:center;margin-bottom:16px">${chip(placa,v.tipo)}</div>
+    <div class="resumen">
+      <div><span class="k">Propietario</span><span>${v.dueno||'Sin registrar'}</span></div>
+      <div><span class="k">Visitas</span><span class="num">${ms.length}</span></div>
+      <div><span class="k">Total pagado</span><span class="num">${cop(gast)}</span></div>
+    </div>
+    <table><thead><tr><th>Entrada</th><th>Salida</th><th class="der">Total</th></tr></thead><tbody>
+    ${ms.slice(-14).reverse().map(m=>`<tr><td class="num">${fh(m.entrada)}</td><td class="num">${m.salida?fh(m.salida):'<span class="pil ok">Adentro</span>'}</td><td class="der num">${m.total===null?'—':cop(m.total)}</td></tr>`).join('')}
+    </tbody></table>
+  `, '<button class="btn sec" onclick="cerrarModal()">Cerrar</button>');
+}
+
+/* ================= planes ================= */
+function pintarPlanes(){
+  const hoy=new Date(), sem=new Date(Date.now()+7*864e5);
+  const vig=DB.planes.filter(p=>p.vence>hoy);
+  $('#p-vig').textContent=vig.length;
+  $('#p-porvencer').textContent=vig.filter(p=>p.vence<=sem).length;
+  $('#p-monto').textContent=cop(vig.reduce((s,p)=>s+p.valor,0));
+
+  $('#t-planes').innerHTML = DB.planes.length ? DB.planes.map((p,i)=>{
+    const v=buscarVeh(p.placa);
+    const dias=Math.ceil((p.vence-hoy)/864e5);
+    const est = dias<0 ? '<span class="pil mal">Vencido</span>' : dias<=7 ? '<span class="pil aviso">Vence en '+dias+' días</span>' : '<span class="pil ok">Vigente</span>';
+    return `<tr>
+      <td>${p.cliente}</td>
+      <td>${chip(p.placa, v?v.tipo:'carro')}</td>
+      <td>${p.plan}</td>
+      <td class="der num">${cop(p.valor)}</td>
+      <td class="num">${p.vence.toLocaleDateString('es-CO',{day:'numeric',month:'short'})}</td>
+      <td>${est}</td>
+      <td class="der"><button class="btn sec chi" onclick="renovar(${i})">Renovar</button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7"><div class="vacio"><b>Sin planes registrados</b>Crea el primero con el botón de arriba.</div></td></tr>';
+}
+function renovar(i){
+  const p=DB.planes[i];
+  const base = p.vence>new Date()?p.vence:new Date();
+  p.vence=new Date(base.getTime()+30*864e5);
+  pintarPlanes();
+  avisar('Plan de '+p.placa+' renovado hasta el '+p.vence.toLocaleDateString('es-CO',{day:'numeric',month:'long'}));
+}
+function abrirPlan(){
+  abrirModal('Nuevo plan', `
+    <label class="campo"><span class="et">Cliente</span><input type="text" id="m-cli" placeholder="Nombre completo"></label>
+    <label class="campo"><span class="et">Placa</span><input type="text" id="m-pla" placeholder="ABC123" maxlength="8"></label>
+    <label class="campo"><span class="et">Plan</span>
+      <select id="m-plan">
+        <option value="Mensual carro|185000|30">Mensual carro · $185.000</option>
+        <option value="Quincenal carro|105000|15">Quincenal carro · $105.000</option>
+        <option value="Mensual moto|90000|30">Mensual moto · $90.000</option>
+      </select></label>
+    <p style="font-size:12.5px;color:var(--gris-cl);margin:0">Mientras el plan esté vigente, ese vehículo no paga al salir.</p>
+  `, `<button class="btn sec" onclick="cerrarModal()">Cancelar</button><button class="btn" onclick="confirmarPlan()">Crear plan</button>`);
+}
+function confirmarPlan(){
+  const cli=$('#m-cli').value.trim(), placa=$('#m-pla').value.trim().toUpperCase();
+  if(!cli) return avisar('Escribe el nombre del cliente.');
+  if(placa.length<5) return avisar('La placa está incompleta.');
+  if(DB.planes.some(p=>p.placa===placa)) return avisar('Esa placa ya tiene un plan. Usa Renovar.');
+  const [nom,val,dias]=$('#m-plan').value.split('|');
+  if(!buscarVeh(placa)) crearVeh(placa, nom.includes('moto')?'moto':'carro', cli);
+  const inicio=new Date();
+  DB.planes.push({cliente:cli,placa,plan:nom,valor:Number(val),inicio,vence:new Date(inicio.getTime()+Number(dias)*864e5)});
+  cerrarModal(); pintarPlanes();
+  avisar('Plan creado para '+placa);
+}
+
+/* ================= tarifas ================= */
+function pintarTarifas(){
+  $('#tarifa-desde').textContent='Vigente desde el '+DB.tarifaDesde.toLocaleDateString('es-CO',{day:'numeric',month:'long',year:'numeric'});
+  $('#t-tarifas').innerHTML=['carro','moto','bici'].map(t=>{
+    const x=DB.tarifas[t];
+    const inp=(c,v,p)=>`<input type="number" class="num" style="text-align:right;max-width:118px;margin-left:auto" data-t="${t}" data-c="${c}" value="${v}" min="0" step="${p}">`;
+    return `<tr><td style="font-weight:500">${x.nombre}</td><td class="der">${inp('minuto',x.minuto,5)}</td><td class="der">${inp('hora',x.hora,100)}</td><td class="der">${inp('dia',x.dia,500)}</td><td class="der">${inp('gracia',x.gracia,1)}</td></tr>`;
+  }).join('');
+}
+function guardarTarifas(){
+  for(const i of document.querySelectorAll('#t-tarifas input')){
+    const v=Number(i.value);
+    if(!Number.isFinite(v)||v<0) return avisar('Revisa los valores: no puede haber campos vacíos ni negativos.');
+    DB.tarifas[i.dataset.t][i.dataset.c]=v;
+  }
+  DB.tarifaDesde=new Date(); pintarTarifas();
+  avisar('Nueva vigencia guardada. Los cobros de aquí en adelante usan estos valores.');
+}
+
+/* ================= reportes ================= */
+function serie(dias){
+  const s=[];
+  for(let d=dias-1;d>=0;d--){
+    const f=new Date(Date.now()-d*864e5);
+    s.push({f,tot:DB.movimientos.filter(m=>m.estado==='cerrado'&&mismoDia(m.salida,f)).reduce((a,m)=>a+m.total,0),hoy:d===0});
+  }
+  return s;
+}
+function pintarReportes(){
+  const dias=Number($('#rango').value);
+  const desde=new Date(); desde.setHours(0,0,0,0); desde.setDate(desde.getDate()-(dias-1));
+  const ms=DB.movimientos.filter(m=>m.estado==='cerrado'&&m.salida>=desde).sort((a,b)=>b.salida-a.salida);
+  const tot=ms.reduce((s,m)=>s+m.total,0);
+
+  $('#r-total').textContent=cop(tot);
+  $('#r-total-n').textContent = dias===1?'Hoy':'Últimos '+dias+' días';
+  $('#r-movs').textContent=ms.length;
+  $('#r-ticket').textContent=ms.length?cop(tot/ms.length):'$0';
+
+  const c={carro:0,moto:0,bici:0}; ms.forEach(m=>c[m.tipo]++);
+  const top=Object.entries(c).sort((a,b)=>b[1]-a[1])[0];
+  $('#r-tipo').textContent=ms.length?DB.tarifas[top[0]].nombre:'—';
+  $('#r-tipo-n').textContent=ms.length?top[1]+' de '+ms.length+' movimientos':'Sin datos en el rango';
+
+  const s=serie(dias===1?7:dias), tope=Math.max(1,...s.map(x=>x.tot));
+  $('#r-barras').innerHTML=s.map(x=>`<div class="barra" title="${ddmm(x.f)} · ${cop(x.tot)}"><span class="cuerpo ${x.hoy?'hoy':''}" style="height:${Math.max(3,x.tot/tope*136)}px"></span><span class="dia num">${ddmm(x.f)}</span></div>`).join('');
+
+  const met={efectivo:0,tarjeta:0,qr:0}; ms.forEach(m=>met[m.metodo]+=m.total);
+  const t2=Math.max(1,...Object.values(met));
+  $('#r-metodos').innerHTML=Object.keys(met).map(k=>`
+    <div class="fila-l"><span>${NOMMET[k]}</span>
+      <span class="pista"><span class="relleno" style="width:${met[k]/t2*100}%;background:${COLMET[k]}"></span></span>
+      <span class="num" style="text-align:right">${cop(met[k])}</span></div>`).join('');
+
+  $('#r-conteo').textContent=ms.length+' movimientos';
+  $('#t-reportes').innerHTML = ms.length ? ms.slice(0,60).map(m=>`<tr>
+      <td>${chip(m.placa,m.tipo)}</td><td>${DB.tarifas[m.tipo].nombre}</td>
+      <td class="num">${fh(m.entrada)}</td><td class="num">${fh(m.salida)}</td>
+      <td class="der num">${m.minutos}</td><td><span class="pil ${m.metodo}">${NOMMET[m.metodo]}</span></td>
+      <td class="der num">${cop(m.total)}</td></tr>`).join('')
+    : '<tr><td colspan="7"><div class="vacio"><b>Sin movimientos en este rango</b>Amplía el rango de fechas.</div></td></tr>';
+}
+
+/* ================= usuarios ================= */
+function pintarUsuarios(){
+  $('#t-usuarios').innerHTML=DB.usuarios.map((u,i)=>`<tr>
+    <td style="font-weight:500">${u.nombre}</td>
+    <td class="num">${u.usuario}</td>
+    <td>${u.rol}</td>
+    <td class="num">${u.ultima?fh(u.ultima):'Nunca'}</td>
+    <td>${u.activo?'<span class="pil ok">Activo</span>':'<span class="pil gris">Inactivo</span>'}</td>
+    <td class="der"><button class="btn sec chi" onclick="alternarUsuario(${i})">${u.activo?'Desactivar':'Activar'}</button></td>
+  </tr>`).join('');
+}
+function alternarUsuario(i){
+  const u=DB.usuarios[i];
+  if(u.rol==='Administrador' && u.activo && DB.usuarios.filter(x=>x.rol==='Administrador'&&x.activo).length===1)
+    return avisar('Debe quedar al menos un administrador activo.');
+  u.activo=!u.activo; pintarUsuarios();
+  avisar(u.nombre+(u.activo?' quedó activo':' quedó inactivo'));
+}
+function abrirUsuario(){
+  abrirModal('Crear usuario', `
+    <label class="campo"><span class="et">Nombre completo</span><input type="text" id="m-unom" placeholder="Nombre y apellido"></label>
+    <label class="campo"><span class="et">Usuario</span><input type="text" id="m-uusr" placeholder="sin espacios"></label>
+    <label class="campo"><span class="et">Rol</span><select id="m-urol"><option>Operador</option><option>Administrador</option></select></label>
+    <p style="font-size:12.5px;color:var(--gris-cl);margin:0">En la versión completa el sistema envía una contraseña temporal al correo.</p>
+  `, `<button class="btn sec" onclick="cerrarModal()">Cancelar</button><button class="btn" onclick="confirmarUsuario()">Crear usuario</button>`);
+}
+function confirmarUsuario(){
+  const n=$('#m-unom').value.trim(), u=$('#m-uusr').value.trim().toLowerCase().replace(/\s+/g,'');
+  if(!n) return avisar('Escribe el nombre completo.');
+  if(u.length<3) return avisar('El usuario necesita al menos 3 caracteres.');
+  if(DB.usuarios.some(x=>x.usuario===u)) return avisar('Ese usuario ya existe.');
+  DB.usuarios.push({nombre:n,usuario:u,rol:$('#m-urol').value,ultima:null,activo:true});
+  cerrarModal(); pintarUsuarios();
+  avisar('Usuario '+u+' creado.');
+}
+
+/* ================= configuración ================= */
+function pintarConfig(){
+  $('#e-nombre').value=DB.empresa.nombre; $('#e-nit').value=DB.empresa.nit;
+  $('#e-dir').value=DB.empresa.dir; $('#e-tel').value=DB.empresa.tel;
+  $('#e-cupos').value=DB.config.cupos; $('#e-base').value=DB.config.base; $('#e-metodos').value=DB.config.metodos;
+}
+function guardarEmpresa(){
+  const n=$('#e-nombre').value.trim();
+  if(!n) return avisar('La razón social no puede quedar vacía.');
+  DB.empresa={nombre:n,nit:$('#e-nit').value.trim(),dir:$('#e-dir').value.trim(),tel:$('#e-tel').value.trim()};
+  avisar('Datos de la empresa guardados.');
+}
+function guardarConfig(){
+  const c=Number($('#e-cupos').value);
+  if(!c||c<1) return avisar('Los cupos deben ser al menos 1.');
+  DB.config={cupos:c,base:Number($('#e-base').value)||0,metodos:$('#e-metodos').value};
+  avisar('Configuración de operación guardada.');
+}
+
+/* ================= arranque ================= */
+pintarInicio();
+setInterval(()=>{ if($('#v-inicio').classList.contains('on')) pintarInicio(); }, 60000);
+</script>
+</body>
+</html>

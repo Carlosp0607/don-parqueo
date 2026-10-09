@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Don Parqueo - Inicio de Sesión</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container">
+        <div class="row min-vh-100 align-items-center justify-content-center">
+            <div class="col-12 col-md-8 col-lg-6">
+                <div class="card login-card border-0 shadow-lg">
+                    <div class="card-body p-5">
+                        <!-- Logo -->
+                        <div class="text-center mb-4">
+                            <div class="logo-container mb-4">
+                                <div class="logo-circle">
+                                    <span class="logo-text">PS</span>
+                                </div>
+                            </div>
+                            <h2 class="fw-bold text-primary">Don Parqueo</h2>
+                            <p class="text-muted">Sistema de Gestión de Parqueadero</p>
+                        </div>
+
+                        <!-- Formulario de Login -->
+                        <form id="loginForm" class="needs-validation" novalidate>
+                            <!-- Campo NIT Empresa -->
+                            <div class="mb-4">
+                                <label for="empresa" class="form-label">NIT del parqueadero</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-primary text-white">
+                                        <i class="fas fa-building"></i>
+                                    </span>
+                                    <input type="text"
+                                           class="form-control"
+                                           id="empresa"
+                                           name="empresa"
+                                           required
+                                           autocomplete="organization"
+                                           placeholder="900123456-7">
+                                    <div class="invalid-feedback">
+                                        Escribe el NIT del parqueadero
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="usuario" class="form-label">Usuario</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-primary text-white">
+                                        <i class="fas fa-user"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="usuario" name="usuario"
+                                           autocomplete="username" required>
+                                    <div class="invalid-feedback">
+                                        Escribe tu usuario
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="password" class="form-label">Contraseña</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-primary text-white">
+                                        <i class="fas fa-lock"></i>
+                                    </span>
+                                    <input type="password" class="form-control" id="password" name="password"
+                                           autocomplete="current-password" required>
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                        <i class="fas fa-eye" id="toggleIcon"></i>
+                                    </button>
+                                    <div class="invalid-feedback">
+                                        Escribe tu contraseña
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-4 form-check">
+                                <input type="checkbox" class="form-check-input" id="recordar">
+                                <label class="form-check-label" for="recordar">Recordar sesión</label>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 mb-3 py-2">
+                                Iniciar Sesión
+                            </button>
+
+                            <div class="text-center">
+                                <small class="text-muted">
+                                    ¿Olvidaste tu contraseña? Contacta al administrador
+                                </small>
+                            </div>
+                        </form>
+
+                        <!-- Acceso de demostración.
+                             Va fuera del formulario a propósito: es un enlace a una
+                             página estática, no toca la API ni pide token. -->
+                        <div class="text-center mt-4 pt-3 border-top">
+                            <a href="demo.html" class="btn btn-outline-secondary w-100 py-2">
+                                <i class="fas fa-eye me-2"></i>Entrar como invitado
+                            </a>
+                            <small class="text-muted d-block mt-2">
+                                Recorre el sistema con datos de ejemplo. No necesitas cuenta.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <footer class="text-center mt-4">
+                    <p class="mt-2 text-muted small">Don Parqueo · Gestión de parqueaderos</p>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="js/login.js"></script>
+    <script>
+    /* Recuerda el NIT del último ingreso en este equipo.
+       Reemplaza el NIT que antes venía quemado en el HTML.
+       No toca el envío del formulario: eso sigue en js/login.js. */
+    (function () {
+      'use strict';
+      // Aviso de sesion cerrada.
+      // menu.js manda a /?expirada=1 cuando el token muere estando el operador
+      // adentro. Sin este aviso el login aparece mudo y parece que el sistema
+      // se cayo solo.
+      try {
+        if (new URLSearchParams(window.location.search).has('expirada')) {
+          var aviso = document.createElement('div');
+          aviso.className = 'alert alert-warning text-center py-2 mb-4';
+          aviso.innerHTML = '<small>Tu sesión se cerró por seguridad. Vuelve a entrar.</small>';
+          var tarjeta = document.querySelector('.card-body');
+          var form = document.getElementById('loginForm');
+          if (tarjeta && form) tarjeta.insertBefore(aviso, form);
+          // Se limpia la URL para que al recargar no vuelva a salir el aviso.
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      } catch (e) { /* navegador sin URLSearchParams */ }
+
+      var CLAVE = 'ps_ultimo_nit';
+      var campo = document.getElementById('empresa');
+      var form  = document.getElementById('loginForm');
+      if (!campo || !form) return;
+
+      try {
+        var guardado = localStorage.getItem(CLAVE);
+        if (guardado) campo.value = guardado;
+      } catch (e) { /* sin localStorage disponible */ }
+
+      // Fase de captura: corre antes que el manejador de login.js.
+      form.addEventListener('submit', function () {
+        var v = campo.value.trim();
+        try {
+          if (v) localStorage.setItem(CLAVE, v);
+        } catch (e) { /* sin localStorage disponible */ }
+      }, true);
+
+      if (campo.value) {
+        var u = document.getElementById('usuario');
+        if (u) u.focus();
+      } else {
+        campo.focus();
+      }
+    })();
+    </script>
+</body>
+</html>

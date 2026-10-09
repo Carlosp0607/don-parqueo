@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Don Parqueo - Reportes</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="../css/dashboard.css" rel="stylesheet">
+<script>
+  if (!localStorage.getItem('token')) { window.location.href = '/'; }
+</script>
+<style>
+  .lienzo { max-width:1100px; }
+
+  .rotulo { font-size:.75rem; color:#8a94a0; text-transform:uppercase; letter-spacing:.04em; }
+  .titulo-seccion { font-size:.9rem; font-weight:600; color:#495057; }
+  .suave { color:#adb5bd; }
+
+  .separador { border-left:1px solid #e9ecef; }
+  .linea-fina { border-top:1px solid #e9ecef; }
+
+  .cifra { font-size:2.5rem; font-weight:600; line-height:1; letter-spacing:-.02em; }
+  .cifra-sub { font-size:.8rem; color:#adb5bd; margin-top:.4rem; }
+
+  /* Los KPI ya no van en caja. El numero se ve porque es grande. */
+  .kpi-etiqueta { font-size:.75rem; color:#8a94a0; text-transform:uppercase; letter-spacing:.04em; }
+  .kpi-valor { font-size:2.5rem; font-weight:600; line-height:1; letter-spacing:-.02em; }
+  .kpi-detalle { font-size:.8rem; color:#adb5bd; margin-top:.4rem; }
+
+  .campo-linea {
+    border:0; border-bottom:1px solid #dee2e6; border-radius:0;
+    box-shadow:none; padding-left:0; font-size:.9rem;
+  }
+  .campo-linea:focus { border-bottom-color:#0d6efd; box-shadow:none; background:transparent; }
+
+  .btn-texto {
+    background:none; border:0; padding:0; color:#0d6efd;
+    font-size:.85rem; text-decoration:none;
+  }
+  .btn-texto:disabled { color:#ced4da; }
+
+  .atajos { gap:1.25rem; }
+  .atajos button {
+    background:none; border:0; padding:.15rem 0;
+    color:#8a94a0; font-size:.85rem;
+  }
+  .atajos button:hover { color:#495057; }
+  .atajos button.activo { color:#212529; font-weight:600; box-shadow:inset 0 -2px 0 #0d6efd; }
+
+  table.limpia { --bs-table-bg:transparent; }
+  table.limpia th {
+    font-weight:500; font-size:.75rem; color:#8a94a0;
+    text-transform:uppercase; letter-spacing:.04em;
+    border-bottom:1px solid #e9ecef; padding:0 .5rem .5rem 0;
+  }
+  table.limpia td {
+    padding:.65rem .5rem .65rem 0;
+    border-bottom:1px solid #f5f6f8; vertical-align:middle;
+    font-size:.9rem; color:#495057;
+  }
+  table.limpia tr:last-child td { border-bottom:0; }
+
+  #fPlaca { text-transform:uppercase; }
+  #tbMov td:nth-child(2), #tbTop td:first-child {
+    font-family:ui-monospace, Menlo, Consolas, monospace;
+    font-weight:600; letter-spacing:.05em; color:#212529;
+  }
+
+  .avanzado-link { font-size:.85rem; text-decoration:none; color:#0d6efd; }
+
+  @media (max-width: 767px){
+    .separador { border-left:0; }
+    .kpi-valor, .cifra { font-size:2rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- El menú lo escribe public/js/menu.js. -->
+<div class="sidebar">
+  <div class="sidebar-footer">
+    <a href="#" class="nav-link" id="btnLogout"><i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span></a>
+  </div>
+</div>
+
+<div class="main-content">
+
+  <nav class="navbar navbar-expand-lg navbar-light bg-white">
+    <div class="container-fluid">
+      <button class="btn btn-link sidebar-toggle"><i class="fas fa-bars"></i></button>
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <span class="nav-link small"><span id="userName">Usuario</span></span>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container lienzo py-5">
+
+    <!-- PERIODO -->
+    <div class="d-flex flex-wrap align-items-end gap-4 mb-3">
+
+      <div class="d-flex atajos">
+        <button id="btnHoy">Hoy</button>
+        <button id="btnUltimos7">7 días</button>
+        <button id="btnMes">Este mes</button>
+      </div>
+
+      <div style="width:8.5rem">
+        <div class="rotulo mb-1">Desde</div>
+        <input type="date" id="fDesde" class="form-control form-control-sm campo-linea">
+      </div>
+      <div style="width:8.5rem">
+        <div class="rotulo mb-1">Hasta</div>
+        <input type="date" id="fHasta" class="form-control form-control-sm campo-linea">
+      </div>
+
+      <button class="btn btn-primary btn-sm px-3" id="btnAplicar">Ver reporte</button>
+
+      <div class="ms-auto d-flex gap-4">
+        <button class="btn-texto" id="btnExport">Descargar PDF</button>
+        <button class="btn-texto" id="btnExportXlsx">Descargar Excel</button>
+      </div>
+    </div>
+
+    <div class="mb-5">
+      <a class="avanzado-link" data-bs-toggle="collapse" href="#masFiltros" role="button">Filtrar más</a>
+      <div class="collapse mt-4" id="masFiltros">
+        <div class="row g-4">
+          <div class="col-md-4">
+            <div class="rotulo mb-1">Tipo de vehículo</div>
+            <select id="fTipo" class="form-select form-select-sm campo-linea">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <div class="rotulo mb-1">Estado</div>
+            <select id="fEstado" class="form-select form-select-sm campo-linea">
+              <option value="">Todos</option>
+              <option value="activo">Todavía adentro</option>
+              <option value="finalizado">Ya salieron</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <div class="rotulo mb-1">Placa</div>
+            <input type="text" id="fPlaca" class="form-control form-control-sm campo-linea" placeholder="ABC123">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CIFRAS -->
+    <div class="row pt-4 mb-5 linea-fina">
+      <div class="col-6 col-xl-3 mb-4 mb-xl-0">
+        <div class="kpi-etiqueta">Recaudado</div>
+        <div class="kpi-valor text-success" id="kpiIngresos">$0</div>
+        <div class="kpi-detalle">
+          Por hora <span id="kpiIngresosMov">$0</span> ·
+          mensualidades <span id="kpiIngresosMens">$0</span>
+        </div>
+      </div>
+      <div class="col-6 col-xl-3 separador mb-4 mb-xl-0">
+        <div class="ps-4">
+          <div class="kpi-etiqueta">Vehículos atendidos</div>
+          <div class="kpi-valor" id="kpiTickets">0</div>
+          <div class="kpi-detalle">En el periodo escogido</div>
+        </div>
+      </div>
+      <div class="col-6 col-xl-3 separador">
+        <div class="ps-4">
+          <div class="kpi-etiqueta">Deja cada uno</div>
+          <div class="kpi-valor" id="kpiPromedio">$0</div>
+          <div class="kpi-detalle">Promedio por vehículo</div>
+        </div>
+      </div>
+      <div class="col-6 col-xl-3 separador">
+        <div class="ps-4">
+          <div class="kpi-etiqueta">Ocupación</div>
+          <div class="kpi-valor" id="kpiOcupacion">0%</div>
+          <div class="kpi-detalle">De los cupos disponibles</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRÁFICOS -->
+    <div class="row g-5 mb-5">
+      <div class="col-12 col-xl-8">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+          <span class="titulo-seccion">Cuánto entra cada día</span>
+          <select id="fMetodo" class="form-select form-select-sm campo-linea" style="max-width:11rem">
+            <option value="">Todos los métodos</option>
+            <option value="efectivo">Efectivo</option>
+            <option value="tarjeta">Tarjeta</option>
+            <option value="QR">QR</option>
+          </select>
+        </div>
+        <canvas id="chartIngresos" height="110"></canvas>
+      </div>
+      <div class="col-12 col-xl-4">
+        <div class="titulo-seccion mb-4">Cómo pagan</div>
+        <canvas id="chartMetodo" height="180"></canvas>
+      </div>
+    </div>
+
+    <!-- MOVIMIENTOS -->
+    <div class="pt-5 linea-fina mb-5">
+      <div class="d-flex justify-content-between align-items-baseline flex-wrap gap-2 mb-3">
+        <span class="titulo-seccion">Detalle de movimientos</span>
+        <span class="small suave" id="movPaging"></span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table limpia mb-0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Placa</th>
+              <th>Tipo</th>
+              <th>Entrada</th>
+              <th>Salida</th>
+              <th>Estado</th>
+              <th>Total</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbMov"></tbody>
+        </table>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center pt-3 mt-3 linea-fina">
+        <button class="btn-texto" id="btnPrev">Anterior</button>
+        <span class="small suave" id="pageInfo">Página 1</span>
+        <button class="btn-texto" id="btnNext">Siguiente</button>
+      </div>
+    </div>
+
+    <!-- TOP PLACAS -->
+    <div class="pt-5 linea-fina">
+      <div class="titulo-seccion">Clientes más frecuentes</div>
+      <div class="small suave mb-3">Los que más vuelven. Candidatos a plan mensual.</div>
+
+      <div class="table-responsive">
+        <table class="table limpia mb-0">
+          <thead>
+            <tr><th>Placa</th><th>Tipo</th><th>Visitas</th><th>Total</th></tr>
+          </thead>
+          <tbody id="tbTop"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="position-fixed top-0 end-0 p-3" style="z-index:1100"><div id="toastContainer"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.1/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
+<script src="../js/reportes.js"></script>
+<script src="../js/menu.js"></script>
+<script>
+/* Solo detalles de la vista. Los datos siguen en reportes.js. */
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  var placa = $('fPlaca');
+  if (placa) placa.addEventListener('input', function () {
+    var pos = this.selectionStart;
+    this.value = this.value.toUpperCase();
+    this.setSelectionRange(pos, pos);
+  });
+
+  // Marca cuál atajo de fecha está aplicado.
+  var atajos = ['btnHoy', 'btnUltimos7', 'btnMes'];
+  atajos.forEach(function (id) {
+    var b = $(id);
+    if (!b) return;
+    b.addEventListener('click', function () {
+      atajos.forEach(function (o) {
+        var e = $(o);
+        if (e) e.classList.toggle('activo', o === id);
+      });
+    });
+  });
+
+  // Si se escogen fechas a mano, ningún atajo queda marcado.
+  ['fDesde', 'fHasta'].forEach(function (id) {
+    var e = $(id);
+    if (e) e.addEventListener('change', function () {
+      atajos.forEach(function (o) {
+        var b = $(o);
+        if (b) b.classList.remove('activo');
+      });
+    });
+  });
+
+  // Si hay algún filtro extra puesto, se abre la sección para que se vea.
+  setTimeout(function () {
+    var hay = ['fTipo', 'fEstado', 'fPlaca'].some(function (id) {
+      var e = $(id);
+      return e && e.value;
+    });
+    if (hay) {
+      var c = $('masFiltros');
+      if (c && window.bootstrap) bootstrap.Collapse.getOrCreateInstance(c).show();
+    }
+  }, 900);
+})();
+</script>
+</body>
+</html>

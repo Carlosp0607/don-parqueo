@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Don Parqueo - Tarifas</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="../css/dashboard.css" rel="stylesheet">
+<style>
+  .lienzo { max-width:1100px; }
+
+  .rotulo { font-size:.75rem; color:#8a94a0; text-transform:uppercase; letter-spacing:.04em; }
+  .titulo-seccion { font-size:.9rem; font-weight:600; color:#495057; }
+  .suave { color:#adb5bd; }
+  .vacio { padding:2.5rem 1rem; text-align:center; color:#adb5bd; }
+
+  .separador { border-left:1px solid #e9ecef; }
+  .linea-fina { border-top:1px solid #e9ecef; }
+
+  /* lista de tipos */
+  .item-tipo {
+    padding:.85rem 0; border-bottom:1px solid #f5f6f8; cursor:pointer;
+    border-left:2px solid transparent; padding-left:.75rem;
+  }
+  .item-tipo:hover { border-left-color:#e9ecef; }
+  .item-tipo.sel { border-left-color:#0d6efd; }
+  .item-tipo.apagado .nombre-tipo { color:#adb5bd; }
+  .item-tipo:last-child { border-bottom:0; }
+  .nombre-tipo { font-weight:500; }
+  .precio-tipo { font-weight:600; }
+  .sin-precio { color:#dc3545; font-size:.85rem; }
+
+  /* modos */
+  .opcion-modo {
+    cursor:pointer; padding:.6rem 0; border-bottom:1px solid #f5f6f8;
+    display:block; border-left:2px solid transparent; padding-left:.75rem;
+  }
+  .opcion-modo:hover { border-left-color:#e9ecef; }
+  .opcion-modo.activa { border-left-color:#0d6efd; }
+  .opcion-modo.activa .modo-nombre { color:#212529; font-weight:600; }
+  .modo-nombre { font-weight:500; color:#6c757d; }
+
+  /* inputs de línea */
+  .linea, .linea:focus {
+    border:0; border-bottom:1px solid #e9ecef; border-radius:0; box-shadow:none;
+  }
+  .linea:focus { border-bottom-color:#0d6efd; }
+
+  /* nombre del tipo, editable en sitio */
+  #tipoNombre {
+    font-size:1.25rem; font-weight:600; padding-left:0; min-width:12rem;
+  }
+  #tipoNombre::placeholder { color:#dee2e6; font-weight:400; }
+
+  /* cada tramo: precio + hasta cuando aplica, en la misma fila */
+  .tramo { padding:1.1rem 0; border-bottom:1px solid #f5f6f8; }
+  .tramo:last-child { border-bottom:0; }
+  .tramo-precio input {
+    font-size:1.5rem; font-weight:600; padding-left:0; width:7rem;
+  }
+  .tramo-hasta input { width:4rem; text-align:center; }
+  .tramo-desc { font-size:.8rem; color:#adb5bd; }
+
+  /* tabla de ejemplos */
+  table.ejemplos { --bs-table-bg:transparent; width:100%; }
+  table.ejemplos td { padding:.5rem 0; border-bottom:1px solid #f5f6f8; font-size:.9rem; }
+  table.ejemplos tr:last-child td { border-bottom:0; }
+  table.ejemplos td:last-child { text-align:right; font-weight:600; }
+  table.ejemplos .tope td { color:#8a94a0; }
+
+  .btn-texto { background:none; border:0; padding:0; color:#0d6efd; font-size:.85rem; }
+  .btn-texto:disabled { color:#ced4da; }
+  .btn-texto.peligro { color:#dc3545; }
+  .btn-texto.peligro:disabled { color:#ced4da; }
+
+  .avisos { position:fixed; top:1rem; right:1rem; z-index:1080; width:22rem; max-width:calc(100vw - 2rem); }
+
+  .modal-content { border:0; border-radius:.5rem; }
+  .modal-header, .modal-footer { border-color:#e9ecef; }
+
+  @media (max-width: 1199px){
+    .separador { border-left:0; border-top:1px solid #e9ecef; padding-top:1.5rem; margin-top:1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="avisos" id="avisos"></div>
+
+<div class="sidebar">
+  <div class="sidebar-footer">
+    <a href="#" class="nav-link" id="btnLogout"><i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span></a>
+  </div>
+</div>
+
+<div class="main-content">
+
+  <nav class="navbar navbar-expand-lg navbar-light bg-white">
+    <div class="container-fluid">
+      <button class="btn btn-link sidebar-toggle"><i class="fas fa-bars"></i></button>
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <span class="nav-link small"><span id="userName">Usuario</span></span>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container py-5 lienzo">
+
+    <div class="mb-5">
+      <h4 class="mb-1">Tarifas</h4>
+      <div class="text-muted small">Qué recibe el parqueadero y cuánto le cobra.</div>
+    </div>
+
+    <div class="row g-4">
+
+      <!-- LISTA DE TIPOS -->
+      <div class="col-12 col-xl-4">
+        <div class="d-flex align-items-baseline mb-3">
+          <span class="titulo-seccion">Tipos de vehículo</span>
+          <button class="btn-texto ms-auto" id="btnNuevoTipo">Nuevo tipo</button>
+        </div>
+        <div id="listaTipos">
+          <div class="vacio">Cargando…</div>
+        </div>
+      </div>
+
+      <!-- EDITOR -->
+      <div class="col-12 col-xl-8 separador">
+        <div class="ps-xl-5">
+
+          <div id="sinTipo">
+            <div class="vacio">Escoge un tipo de la lista para ponerle precio.</div>
+          </div>
+
+          <div id="editor" class="d-none">
+
+            <!-- CABECERA -->
+            <div class="d-flex align-items-end flex-wrap gap-4 mb-2">
+              <div>
+                <div class="rotulo mb-1">Nombre</div>
+                <input type="text" class="form-control linea" id="tipoNombre"
+                       maxlength="40" autocomplete="off" placeholder="Camioneta">
+              </div>
+              <div class="ms-auto d-flex align-items-end gap-4">
+                <div>
+                  <div class="rotulo mb-1">Cupos</div>
+                  <input type="number" class="form-control form-control-sm linea" id="tipoCupos"
+                         min="0" placeholder="Sin límite" style="width:7rem">
+                </div>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="tipoActivo">
+                  <label class="form-check-label small" for="tipoActivo">Disponible</label>
+                </div>
+                <button class="btn-texto" id="btnGuardarTipo">Guardar tipo</button>
+                <button class="btn-texto peligro" id="btnEliminarTipo">Eliminar</button>
+              </div>
+            </div>
+            <div class="small suave mb-5" id="subtituloTipo"></div>
+
+            <!-- MODO -->
+            <div class="mb-5">
+              <div class="titulo-seccion mb-1">¿Cómo se le cobra?</div>
+              <div class="small suave mb-3">Lo normal en un parqueadero es Combinado.</div>
+
+              <div class="row g-0">
+                <div class="col-sm-6">
+                  <label class="opcion-modo" data-modo="minuto">
+                    <div class="modo-nombre">Solo por minuto</div>
+                    <div class="small suave">Paga exacto lo que estuvo</div>
+                  </label>
+                  <label class="opcion-modo" data-modo="hora">
+                    <div class="modo-nombre">Solo por hora</div>
+                    <div class="small suave">Cobra la hora completa</div>
+                  </label>
+                </div>
+                <div class="col-sm-6">
+                  <label class="opcion-modo" data-modo="dia">
+                    <div class="modo-nombre">Solo por día</div>
+                    <div class="small suave">Precio fijo sin importar el rato</div>
+                  </label>
+                  <label class="opcion-modo" data-modo="mixto">
+                    <div class="modo-nombre">Combinado</div>
+                    <div class="small suave">Minutos, luego horas, luego el día</div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- PRECIOS POR TRAMO -->
+            <div class="mb-5">
+              <div class="titulo-seccion mb-1">¿Cuánto cobra?</div>
+              <div class="small suave mb-3" id="ayudaPrecios"></div>
+
+              <!-- MINUTO -->
+              <div class="tramo" id="wrapMinuto">
+                <div class="d-flex align-items-end flex-wrap gap-4">
+                  <div class="tramo-precio">
+                    <div class="rotulo mb-1">Por cada minuto</div>
+                    <div class="d-flex align-items-baseline gap-2">
+                      <span class="suave">$</span>
+                      <input type="number" min="0" step="10" id="valorMinuto" class="form-control linea" value="0">
+                    </div>
+                  </div>
+                  <div class="tramo-hasta ms-auto d-none" id="hastaMinuto">
+                    <div class="rotulo mb-1">Hasta los</div>
+                    <div class="d-flex align-items-baseline gap-2">
+                      <input type="number" min="0" step="5" id="pasoMinutos" class="form-control form-control-sm linea" value="60">
+                      <span class="small suave text-nowrap">minutos</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="tramo-desc mt-2" id="descMinuto"></div>
+              </div>
+
+              <!-- HORA -->
+              <div class="tramo" id="wrapHora">
+                <div class="d-flex align-items-end flex-wrap gap-4">
+                  <div class="tramo-precio">
+                    <div class="rotulo mb-1">Por cada hora</div>
+                    <div class="d-flex align-items-baseline gap-2">
+                      <span class="suave">$</span>
+                      <input type="number" min="0" step="500" id="valorHora" class="form-control linea" value="0">
+                    </div>
+                  </div>
+                  <div class="tramo-hasta ms-auto d-none" id="hastaHora">
+                    <div class="rotulo mb-1">Hasta las</div>
+                    <div class="d-flex align-items-baseline gap-2">
+                      <input type="number" min="0" step="1" id="pasoHoras" class="form-control form-control-sm linea" value="5">
+                      <span class="small suave text-nowrap">horas</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="tramo-desc mt-2" id="descHora"></div>
+              </div>
+
+              <!-- DÍA -->
+              <div class="tramo" id="wrapDia">
+                <div class="tramo-precio">
+                  <div class="rotulo mb-1">Por el día completo</div>
+                  <div class="d-flex align-items-baseline gap-2">
+                    <span class="suave">$</span>
+                    <input type="number" min="0" step="1000" id="valorDia" class="form-control linea" value="0">
+                  </div>
+                </div>
+                <div class="tramo-desc mt-2" id="descDia"></div>
+              </div>
+
+              <!-- Aviso cuando las horas se pasan del precio del dia -->
+              <div class="small text-danger mt-3 d-none" id="avisoTope"></div>
+            </div>
+
+            <!-- REDONDEO -->
+            <div class="mb-5" id="cardRedondeo">
+              <div class="titulo-seccion mb-1">¿Cómo cuenta las fracciones?</div>
+              <div class="small suave mb-3">Qué pasa cuando el rato no da exacto.</div>
+              <div class="row g-4">
+                <div class="col-md-6" id="wrapRedHoras">
+                  <div class="rotulo mb-1">Si lleva 1 hora y 5 minutos…</div>
+                  <select id="redondeoHoras" class="form-select form-select-sm linea">
+                    <option value="arriba">Cobra 2 horas completas</option>
+                    <option value="exacto">Cobra solo 1 hora</option>
+                  </select>
+                </div>
+                <div class="col-md-6" id="wrapRedDias">
+                  <div class="rotulo mb-1">Si lleva 1 día y unas horas…</div>
+                  <select id="redondeoDias" class="form-select form-select-sm linea">
+                    <option value="arriba">Cobra 2 días completos</option>
+                    <option value="exacto">Cobra solo 1 día</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- EJEMPLOS -->
+            <div class="pt-4 linea-fina mb-4">
+              <div class="titulo-seccion mb-1">Lo que va a pagar el cliente</div>
+              <div class="small suave mb-3">Se actualiza mientras escribes.</div>
+              <table class="ejemplos">
+                <tbody id="tablaEjemplos"></tbody>
+              </table>
+            </div>
+
+            <div class="d-flex justify-content-end align-items-center gap-4 mb-5">
+              <button class="btn-texto suave" id="btnDescartar">Descartar cambios</button>
+              <button class="btn btn-primary" id="btnGuardarTarifa">Guardar tarifa</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO TIPO -->
+<div class="modal fade" id="modalTipo" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header"><h6 class="modal-title">Nuevo tipo de vehículo</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="rotulo mb-1">¿Cómo se llama?</div>
+        <input class="form-control mb-4" id="nuevoNombre" placeholder="Camioneta" autocomplete="off">
+        <div class="rotulo mb-1">Cupos <span class="suave">(opcional)</span></div>
+        <input type="number" class="form-control" id="nuevoCupos" min="0" placeholder="Sin límite">
+        <div class="small suave mt-2">Después le pones precio aquí mismo.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary" id="btnCrearTipo">Crear</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRMAR ELIMINACIÓN -->
+<div class="modal fade" id="modalEliminar" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header"><h6 class="modal-title">Eliminar tipo</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <p class="mb-2">Vas a eliminar <strong id="nombreAEliminar">—</strong>.</p>
+        <p class="small suave mb-0">
+          No se puede deshacer. Si el tipo ya tiene vehículos o tarifas, el sistema
+          lo bloquea y te ofrece desactivarlo.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-danger" id="btnConfirmarEliminar">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ============================================================
+   CFG - Rutas de API. Si alguna no coincide, se cambia SOLO aquí.
+   ============================================================ */
+const CFG = {
+  tipos       : ['/api/tipos-vehiculos', '/api/tipos-vehiculos/activos', '/api/tipos-vehiculo'],
+  tipoCrear   : '/api/tipos-vehiculos',
+  tipoEditar  : '/api/tipos-vehiculos/',
+  tarifas     : '/api/tarifas/current',
+  tarifaGuardar: '/api/tarifas'
+};
+
+const $ = id => document.getElementById(id);
+
+function pesos(v){
+  return '$ ' + (Math.round(Number(v) || 0)).toLocaleString('es-CO', { maximumFractionDigits:0 });
+}
+
+function avisar(tipo, texto){
+  const clase = { ok:'success', error:'danger', alerta:'warning' }[tipo] || 'secondary';
+  const el = document.createElement('div');
+  el.className = `alert alert-${clase} alert-dismissible py-2 border-0`;
+  el.innerHTML = `<div class="small">${texto}</div>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+  $('avisos').appendChild(el);
+  setTimeout(() => el.remove(), tipo==='error' ? 9000 : 4000);
+}
+
+async function api(url, opciones = {}){
+  const headers = { 'Accept':'application/json', ...(opciones.headers||{}) };
+  if(opciones.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+  const tok = localStorage.getItem('token') || localStorage.getItem('ps_token');
+  if(tok) headers['Authorization'] = 'Bearer ' + tok;
+
+  let res, cuerpo;
+  try{
+    res = await fetch(url, { ...opciones, headers, credentials:'include' });
+    const crudo = await res.text();
+    try { cuerpo = crudo ? JSON.parse(crudo) : {}; } catch { cuerpo = { message: crudo }; }
+  }catch(e){ throw new Error('No hay conexión con el servidor.'); }
+
+  if(res.status === 401 || res.status === 403)
+    throw new Error(cuerpo.message || cuerpo.error || 'La sesión expiró. Vuelve a entrar.');
+  if(!res.ok){
+    console.error('API', url, res.status, cuerpo);
+    const err = new Error(cuerpo.message || cuerpo.error || ('El servidor respondió ' + res.status));
+    err.status = res.status;
+    throw err;
+  }
+  return cuerpo;
+}
+async function apiPrimera(rutas, opciones){
+  let ultimo;
+  for(const r of rutas){
+    try { return { ruta:r, datos: await api(r, opciones) }; }
+    catch(e){ ultimo = e; if(e.status && e.status !== 404) throw e; }
+  }
+  throw ultimo || new Error('Ninguna ruta respondió.');
+}
+function lista(r){
+  if(Array.isArray(r)) return r;
+  for(const k of ['data','tipos','tarifas','rows','items','resultados'])
+    if(Array.isArray(r?.[k])) return r[k];
+  if(r?.data && typeof r.data === 'object')
+    for(const k of ['tipos','tarifas','rows','items'])
+      if(Array.isArray(r.data[k])) return r.data[k];
+  return [];
+}
+function campo(o, claves, def=null){
+  for(const k of claves) if(o && o[k] !== undefined && o[k] !== null) return o[k];
+  return def;
+}
+
+const S = { tipos:[], tarifas:[], sel:null, rutaTipos:null };
+
+/* ---------- nombre de usuario ---------- */
+(function(){
+  try{
+    const u = JSON.parse(localStorage.getItem('usuario') || localStorage.getItem('user') || 'null');
+    const n = u && (u.nombre || u.usuario || u.username || u.nombre_usuario);
+    if(n) $('userName').textContent = n;
+  }catch(e){}
+})();
+
+/* ---------- carga ---------- */
+function idTipo(t){ return campo(t,['id','id_tipo','id_tipo_vehiculo']); }
+function nombreTipo(t){ return campo(t,['nombre','descripcion','tipo'],'Tipo ' + idTipo(t)); }
+function activoTipo(t){ return Number(campo(t,['activo','estado','is_activo'],1)) ? true : false; }
+function cuposTipo(t){ return campo(t,['capacidad_total','capacidad','cupos'], null); }
+function vehiculosTipo(t){ return Number(campo(t,['total_vehiculos'],0)) || 0; }
+
+/* El backend devuelve la tarifa con id_tipo. Se prueban varios nombres por si
+   alguna ruta vieja usa otro. */
+function tarifaDe(tipoId){
+  return S.tarifas.find(x =>
+    String(campo(x,['id_tipo','id_tipo_vehiculo','tipo_id','id_tipo_veh'])) === String(tipoId)) || null;
+}
+function tipoPorId(id){
+  return S.tipos.find(x => String(idTipo(x)) === String(id)) || null;
+}
+
+async function cargarTodo(){
+  try{
+    const { ruta, datos } = S.rutaTipos
+      ? { ruta:S.rutaTipos, datos: await api(S.rutaTipos) }
+      : await apiPrimera(CFG.tipos);
+    S.rutaTipos = ruta;
+    S.tipos = lista(datos);
+  }catch(e){
+    S.tipos = [];
+    avisar('error','Tipos de vehículo: ' + e.message);
+  }
+
+  try{ S.tarifas = lista(await api(CFG.tarifas)); }
+  catch(e){ S.tarifas = []; console.warn('tarifas:', e.message); }
+
+  pintarLista();
+}
+
+function pintarLista(){
+  const cont = $('listaTipos');
+  if(!S.tipos.length){
+    cont.innerHTML = '<div class="vacio">No hay tipos todavía. Crea el primero con "Nuevo tipo".</div>';
+    return;
+  }
+
+  cont.innerHTML = S.tipos.map(t => {
+    const id = idTipo(t);
+    const tf = tarifaDe(id);
+    const act = activoTipo(t);
+    const cup = cuposTipo(t);
+
+    let precio;
+    if(!tf){
+      precio = '<span class="sin-precio">Sin precio</span>';
+    }else{
+      const modo = String(campo(tf,['modo_cobro','modo'],'mixto'));
+      const v = modo === 'minuto' ? campo(tf,['valor_minuto'],0)
+              : modo === 'dia'    ? campo(tf,['valor_dia_completo','valor_dia'],0)
+              :                     campo(tf,['valor_hora'],0);
+      const u = modo === 'minuto' ? '/min' : modo === 'dia' ? '/día' : '/hora';
+      precio = '<span class="precio-tipo">' + pesos(v) + '</span><span class="small suave">' + u + '</span>';
+    }
+
+    return `<div class="item-tipo ${act ? '' : 'apagado'} ${String(S.sel)===String(id) ? 'sel' : ''}"
+                 data-id="${id}">
+              <div class="d-flex align-items-center">
+                <div>
+                  <div class="nombre-tipo">${nombreTipo(t)}</div>
+                  <div class="small suave">${
+                    (act ? '' : 'No recibe entradas · ') +
+                    (cup ? cup + ' cupos' : 'Sin límite de cupos')
+                  }</div>
+                </div>
+                <div class="ms-auto text-end">${precio}</div>
+              </div>
+            </div>`;
+  }).join('');
+
+  cont.querySelectorAll('.item-tipo').forEach(el =>
+    el.addEventListener('click', () => seleccionar(el.dataset.id)));
+}
+
+/* ---------- selección ---------- */
+function seleccionar(id){
+  S.sel = id;
+  const t = tipoPorId(id);
+  if(!t) return;
+
+  $('sinTipo').classList.add('d-none');
+  $('editor').classList.remove('d-none');
+
+  $('tipoNombre').value = nombreTipo(t);
+
+  /* El codigo interno no se toca al renombrar: otras pantallas lo usan como
+     identificador estable. Se muestra solo como referencia. */
+  const cod = campo(t,['codigo'],'');
+  const veh = vehiculosTipo(t);
+  $('subtituloTipo').textContent =
+    (cod ? 'código: ' + cod : '') +
+    (cod && veh ? ' · ' : '') +
+    (veh ? veh + (veh === 1 ? ' vehículo registrado' : ' vehículos registrados') : '');
+
+  $('tipoCupos').value = cuposTipo(t) || '';
+  $('tipoActivo').checked = activoTipo(t);
+
+  const tf = tarifaDe(id);
+  const modo = tf ? String(campo(tf,['modo_cobro','modo'],'hora')) : 'mixto';
+
+  /* Los valores llegan de la base de datos como "6000.00". Se pasan a entero porque en
+     pesos no hay centavos y el .00 confunde al que configura. */
+  const ent = v => Math.round(Number(v) || 0);
+
+  $('valorMinuto').value = tf ? ent(campo(tf,['valor_minuto'],0)) : 0;
+  $('valorHora').value   = tf ? ent(campo(tf,['valor_hora'],0)) : 0;
+  $('valorDia').value    = tf ? ent(campo(tf,['valor_dia_completo','valor_dia'],0)) : 0;
+
+  /* Si nunca se configuraron los cortes quedan en cero, y con cero el cobro
+     por minuto y por hora no aplican nunca: todo salta a dia completo. Por eso
+     un tipo sin configurar arranca con los valores tipicos de parqueadero. */
+  const pM = tf ? ent(campo(tf,['paso_minutos_a_horas'],0)) : 0;
+  const pH = tf ? ent(campo(tf,['paso_horas_a_dias'],0)) : 0;
+  $('pasoMinutos').value = pM > 0 ? pM : 60;
+  $('pasoHoras').value   = pH > 0 ? pH : 5;
+
+  $('redondeoHoras').value = tf ? String(campo(tf,['redondeo_horas'],'arriba')) : 'arriba';
+  $('redondeoDias').value  = tf ? String(campo(tf,['redondeo_dias'],'arriba')) : 'arriba';
+
+  aplicarModo(modo);
+  pintarLista();
+}
+
+/* ---------- modo ---------- */
+let MODO = 'mixto';
+
+function mostrar(el, visible){
+  if(!el) return;
+  el.classList.toggle('d-none', !visible);
+}
+
+function aplicarModo(modo){
+  MODO = modo;
+  document.querySelectorAll('.opcion-modo').forEach(l =>
+    l.classList.toggle('activa', l.dataset.modo === modo));
+
+  mostrar($('wrapMinuto'), modo === 'minuto' || modo === 'mixto');
+  mostrar($('wrapHora'),   modo === 'hora'   || modo === 'mixto');
+  mostrar($('wrapDia'),    modo === 'dia'    || modo === 'mixto');
+
+  /* Los cortes solo tienen sentido en combinado: en los otros modos hay un
+     solo precio y no hay de que a que cambiar. */
+  mostrar($('hastaMinuto'), modo === 'mixto');
+  mostrar($('hastaHora'),   modo === 'mixto');
+
+  mostrar($('wrapRedHoras'),  modo === 'hora' || modo === 'mixto');
+  mostrar($('wrapRedDias'),   modo === 'dia'  || modo === 'mixto');
+  mostrar($('cardRedondeo'),  modo !== 'minuto');
+
+  const ayudas = {
+    minuto: 'Se cobra exacto por los minutos que estuvo, sin importar cuánto se quede.',
+    hora:   'Se cobra por horas. Una fracción cuenta como hora completa.',
+    dia:    'Precio fijo por día, sin importar si se queda una hora o diez.',
+    mixto:  'El precio cambia según el rato: primero minutos, después horas, después el día.'
+  };
+  $('ayudaPrecios').textContent = ayudas[modo] || '';
+
+  refrescar();
+}
+
+document.querySelectorAll('.opcion-modo').forEach(l =>
+  l.addEventListener('click', () => aplicarModo(l.dataset.modo)));
+
+/* ---------- calculo del cobro ----------
+   Replica la logica del backend para poder mostrar los ejemplos en vivo.
+   Si el backend cambia la formula, hay que cambiarla aqui tambien.        */
+function cobroDe(minutos){
+  const min = Number($('valorMinuto').value) || 0;
+  const hor = Number($('valorHora').value) || 0;
+  const dia = Number($('valorDia').value) || 0;
+  const pM  = Number($('pasoMinutos').value) || 0;
+  const pH  = Number($('pasoHoras').value) || 0;
+  const arribaH = $('redondeoHoras').value === 'arriba';
+  const arribaD = $('redondeoDias').value === 'arriba';
+
+  if(MODO === 'minuto') return minutos * min;
+
+  if(MODO === 'hora'){
+    const h = arribaH ? Math.ceil(minutos/60) : Math.floor(minutos/60) || 1;
+    return h * hor;
+  }
+
+  if(MODO === 'dia'){
+    const d = arribaD ? Math.ceil(minutos/1440) : Math.floor(minutos/1440) || 1;
+    return d * dia;
+  }
+
+  // combinado
+  if(pM > 0 && minutos <= pM) return minutos * min;
+
+  const horas = minutos / 60;
+  if(pH > 0 && horas <= pH){
+    const h = arribaH ? Math.ceil(horas) : Math.floor(horas) || 1;
+    return h * hor;
+  }
+
+  const d = arribaD ? Math.ceil(minutos/1440) : Math.floor(minutos/1440) || 1;
+  return d * dia;
+}
+
+/* ---------- ejemplos y avisos ---------- */
+const EJEMPLOS = [
+  { min: 15,   texto: '15 minutos' },
+  { min: 45,   texto: '45 minutos' },
+  { min: 90,   texto: '1 hora y media' },
+  { min: 180,  texto: '3 horas' },
+  { min: 480,  texto: '8 horas' },
+  { min: 1440, texto: 'Un día entero' }
+];
+
+function refrescar(){
+  // descripciones bajo cada precio
+  const min = Number($('valorMinuto').value) || 0;
+  const hor = Number($('valorHora').value) || 0;
+  const dia = Number($('valorDia').value) || 0;
+  const pM  = Number($('pasoMinutos').value) || 0;
+  const pH  = Number($('pasoHoras').value) || 0;
+
+  $('descMinuto').textContent = min > 0
+    ? (MODO === 'mixto'
+        ? '10 minutos son ' + pesos(min*10) + '. Media hora, ' + pesos(min*30) + '.'
+        : '10 minutos son ' + pesos(min*10) + '.')
+    : '';
+
+  $('descHora').textContent = hor > 0
+    ? (MODO === 'mixto' && pH > 0
+        ? '2 horas son ' + pesos(hor*2) + '. ' + pH + ' horas, ' + pesos(hor*pH) + '.'
+        : '2 horas son ' + pesos(hor*2) + '.')
+    : '';
+
+  $('descDia').textContent = dia > 0
+    ? (MODO === 'mixto' && pH > 0
+        ? 'Pasadas las ' + pH + ' horas se cobra esto, sin importar cuánto más se quede.'
+        : 'Precio fijo del día.')
+    : '';
+
+  // aviso: si las horas acumuladas pasan el precio del dia, el cliente
+  // termina pagando mas por quedarse menos tiempo.
+  const aviso = $('avisoTope');
+  if(MODO === 'mixto' && hor > 0 && dia > 0 && pH > 0 && hor * pH > dia){
+    const horasJustas = Math.floor(dia / hor);
+    aviso.textContent = 'Ojo: a las ' + pH + ' horas el cliente pagaría ' + pesos(hor*pH) +
+      ', más que el día completo (' + pesos(dia) + '). Baja el corte a ' + horasJustas +
+      ' horas o sube el precio del día.';
+    aviso.classList.remove('d-none');
+  }else{
+    aviso.classList.add('d-none');
+  }
+
+  // tabla de ejemplos
+  $('tablaEjemplos').innerHTML = EJEMPLOS.map(e => {
+    const v = cobroDe(e.min);
+    const tope = (dia > 0 && v >= dia && MODO === 'mixto') ? ' class="tope"' : '';
+    return '<tr' + tope + '><td>' + e.texto + '</td><td>' + pesos(v) + '</td></tr>';
+  }).join('');
+}
+
+['valorMinuto','valorHora','valorDia','pasoMinutos','pasoHoras'].forEach(id => {
+  $(id).addEventListener('input', refrescar);
+});
+['redondeoHoras','redondeoDias'].forEach(id => {
+  $(id).addEventListener('change', refrescar);
+});
+
+/* ---------- guardar tipo ----------
+   El backend exige el nombre en el PUT. Antes solo se mandaba capacidad y
+   activo, por eso respondia "El nombre es obligatorio" con el tipo bien
+   seleccionado. Ademas la capacidad se llama capacidad_total, no capacidad.
+   El codigo no se manda a proposito: renombrar no debe cambiar el
+   identificador interno que usan las otras pantallas. */
+$('btnGuardarTipo').addEventListener('click', async () => {
+  if(!S.sel) return;
+  const btn = $('btnGuardarTipo');
+  const nombre = $('tipoNombre').value.trim();
+  const cup = $('tipoCupos').value.trim();
+
+  if(!nombre) return avisar('alerta','El tipo necesita un nombre.');
+
+  const repetido = S.tipos.some(t =>
+    String(idTipo(t)) !== String(S.sel) &&
+    nombreTipo(t).trim().toLowerCase() === nombre.toLowerCase());
+  if(repetido) return avisar('alerta','Ya hay otro tipo que se llama "' + nombre + '".');
+
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    await api(CFG.tipoEditar + S.sel, { method:'PUT', body: JSON.stringify({
+      nombre,
+      /* 0 significa sin limite. Mandar null hace que el backend ni siquiera
+         toque la capacidad, asi que no habria forma de quitar el tope. */
+      capacidad_total: cup === '' ? 0 : Number(cup),
+      activo: $('tipoActivo').checked ? 1 : 0
+    })});
+    avisar('ok','Tipo actualizado.');
+    await cargarTodo();
+    seleccionar(S.sel);
+  }catch(e){ avisar('error', e.message); }
+  finally{ btn.disabled = false; btn.textContent = 'Guardar tipo'; }
+});
+
+/* ---------- eliminar tipo ----------
+   El backend bloquea el borrado si el tipo tiene vehiculos o tarifas activas,
+   para no romper el historico de reportes. Cuando eso pasa se ofrece
+   desactivarlo, que es lo que casi siempre se busca. */
+$('btnEliminarTipo').addEventListener('click', () => {
+  if(!S.sel) return;
+  const t = tipoPorId(S.sel);
+  if(!t) return;
+  $('nombreAEliminar').textContent = nombreTipo(t);
+  bootstrap.Modal.getOrCreateInstance($('modalEliminar')).show();
+});
+
+$('btnConfirmarEliminar').addEventListener('click', async () => {
+  if(!S.sel) return;
+  const btn = $('btnConfirmarEliminar');
+  const nombre = nombreTipo(tipoPorId(S.sel) || {});
+
+  btn.disabled = true; btn.textContent = 'Eliminando…';
+  try{
+    await api(CFG.tipoEditar + S.sel, { method:'DELETE' });
+    bootstrap.Modal.getInstance($('modalEliminar')).hide();
+    avisar('ok','Tipo "' + nombre + '" eliminado.');
+    S.sel = null;
+    $('editor').classList.add('d-none');
+    $('sinTipo').classList.remove('d-none');
+    await cargarTodo();
+  }catch(e){
+    bootstrap.Modal.getInstance($('modalEliminar')).hide();
+    const bloqueado = /veh[ií]culos|tarifas/i.test(e.message || '');
+    if(bloqueado){
+      avisar('alerta', e.message +
+        ' Puedes desactivarlo: deja de recibir entradas y el histórico se conserva.');
+      $('tipoActivo').checked = false;
+      $('tipoActivo').focus();
+    }else{
+      avisar('error', e.message);
+    }
+  }
+  finally{ btn.disabled = false; btn.textContent = 'Eliminar'; }
+});
+
+/* ---------- guardar tarifa ---------- */
+$('btnGuardarTarifa').addEventListener('click', async () => {
+  if(!S.sel) return avisar('alerta','Escoge un tipo primero.');
+  const btn = $('btnGuardarTarifa');
+
+  const min = Number($('valorMinuto').value) || 0;
+  const hor = Number($('valorHora').value) || 0;
+  const dia = Number($('valorDia').value) || 0;
+  const pM  = Number($('pasoMinutos').value) || 0;
+  const pH  = Number($('pasoHoras').value) || 0;
+
+  if(MODO === 'minuto' && min <= 0) return avisar('alerta','Pon el precio por minuto.');
+  if(MODO === 'hora'   && hor <= 0) return avisar('alerta','Pon el precio por hora.');
+  if(MODO === 'dia'    && dia <= 0) return avisar('alerta','Pon el precio por día.');
+  if(MODO === 'mixto'){
+    if(min <= 0 || hor <= 0 || dia <= 0)
+      return avisar('alerta','En combinado hacen falta los tres precios.');
+    if(pM <= 0 || pH <= 0)
+      return avisar('alerta','Pon hasta qué minuto y hasta qué hora aplica cada precio.');
+  }
+
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    await api(CFG.tarifaGuardar, { method:'PUT', body: JSON.stringify({
+      /* El backend lee req.body.id_tipo. Antes se mandaba solo
+         id_tipo_vehiculo y llegaba undefined, asi que respondia "Debe
+         seleccionar un tipo de vehiculo" con el tipo bien seleccionado. */
+      id_tipo: Number(S.sel),
+      id_tipo_vehiculo: Number(S.sel),
+      modo_cobro: MODO,
+      valor_minuto: min,
+      valor_hora: hor,
+      valor_dia_completo: dia,
+      paso_minutos_a_horas: pM,
+      paso_horas_a_dias: pH,
+      redondeo_horas: $('redondeoHoras').value,
+      redondeo_dias: $('redondeoDias').value
+    })});
+    avisar('ok','Tarifa guardada.');
+    await cargarTodo();
+    seleccionar(S.sel);
+  }catch(e){ avisar('error', e.message); }
+  finally{ btn.disabled = false; btn.textContent = 'Guardar tarifa'; }
+});
+
+$('btnDescartar').addEventListener('click', () => { if(S.sel) seleccionar(S.sel); });
+
+/* ---------- nuevo tipo ---------- */
+$('btnNuevoTipo').addEventListener('click', () => {
+  $('nuevoNombre').value = '';
+  $('nuevoCupos').value = '';
+  bootstrap.Modal.getOrCreateInstance($('modalTipo')).show();
+});
+$('modalTipo').addEventListener('shown.bs.modal', () => $('nuevoNombre').focus());
+
+$('btnCrearTipo').addEventListener('click', async () => {
+  const btn = $('btnCrearTipo');
+  const nombre = $('nuevoNombre').value.trim();
+  const cupos  = $('nuevoCupos').value.trim();
+  if(!nombre) return avisar('alerta','Escribe el nombre del tipo.');
+
+  const codigo = nombre.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+
+  if(!codigo) return avisar('alerta','El nombre necesita al menos una letra o número.');
+
+  btn.disabled = true; btn.textContent = 'Creando…';
+  try{
+    await api(CFG.tipoCrear, { method:'POST', body: JSON.stringify({
+      nombre, codigo, activo: 1,
+      /* El backend lee capacidad_total. Antes se mandaba capacidad y los
+         cupos del tipo nuevo se perdian en silencio. */
+      capacidad_total: cupos === '' ? 0 : Number(cupos)
+    })});
+    bootstrap.Modal.getInstance($('modalTipo')).hide();
+    avisar('ok','Tipo "' + nombre + '" creado. Ahora ponle precio.');
+    await cargarTodo();
+    const nuevo = S.tipos.find(t => nombreTipo(t).toLowerCase() === nombre.toLowerCase());
+    if(nuevo) seleccionar(idTipo(nuevo));
+  }catch(e){ avisar('error', e.message); }
+  finally{ btn.disabled = false; btn.textContent = 'Crear'; }
+});
+
+/* ---------- arranque ---------- */
+(async function init(){
+  await cargarTodo();
+  const sinPrecio = S.tipos.filter(t => !tarifaDe(idTipo(t)));
+  if(sinPrecio.length){
+    avisar('alerta', sinPrecio.length === 1
+      ? '"' + nombreTipo(sinPrecio[0]) + '" no tiene precio. No se le puede cobrar.'
+      : sinPrecio.length + ' tipos no tienen precio. No se les puede cobrar.');
+  }
+})();
+</script>
+<script src="../js/menu.js"></script>
+</body>
+</html>

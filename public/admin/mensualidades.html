@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Don Parqueo - Planes</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="../css/dashboard.css" rel="stylesheet">
+<script>
+  if (!localStorage.getItem('token')) { window.location.href = '/'; }
+</script>
+<style>
+  .lienzo { max-width:1100px; }
+
+  .rotulo { font-size:.75rem; color:#8a94a0; text-transform:uppercase; letter-spacing:.04em; }
+  .titulo-seccion { font-size:.9rem; font-weight:600; color:#495057; }
+  .suave { color:#adb5bd; }
+  .vacio { padding:2.5rem 1rem; text-align:center; color:#adb5bd; }
+  .eco { min-height:1.1rem; font-size:.8rem; color:#adb5bd; }
+
+  .linea, .linea:focus {
+    border:0; border-bottom:1px solid #e9ecef; border-radius:0;
+    box-shadow:none; padding-left:0;
+  }
+  .linea:focus { border-bottom-color:#0d6efd; }
+
+  .btn-texto { background:none; border:0; padding:0; color:#0d6efd; font-size:.85rem; }
+  .btn-texto:disabled { color:#ced4da; }
+
+  /* ---- tabla limpia ---- */
+  table.limpia { --bs-table-bg:transparent; }
+  table.limpia th {
+    font-weight:500; font-size:.75rem; color:#8a94a0;
+    text-transform:uppercase; letter-spacing:.04em;
+    border-bottom:1px solid #e9ecef; padding:0 .5rem .5rem 0;
+  }
+  table.limpia td { padding:.75rem .5rem .75rem 0; border-bottom:1px solid #f5f6f8; vertical-align:middle; }
+  table.limpia tr:last-child td { border-bottom:0; }
+
+  /* la placa la pinta mensualidades.js como badge: se aplana */
+  #tbMens .badge.bg-light {
+    background:none !important; border:0 !important; padding:0 !important;
+    font-family:ui-monospace, Menlo, Consolas, monospace;
+    font-weight:600; font-size:.95rem; letter-spacing:.05em; color:#212529 !important;
+  }
+  #tbMens .badge {
+    font-weight:500; font-size:.72rem; padding:0; background:none !important;
+    text-transform:none;
+  }
+  #tbMens .badge.bg-success   { color:#198754 !important; }
+  #tbMens .badge.bg-warning   { color:#fd7e14 !important; }
+  #tbMens .badge.bg-danger    { color:#dc3545 !important; }
+  #tbMens .badge.bg-secondary { color:#adb5bd !important; }
+
+  /* botones de acción de la tabla, sin cajas */
+  #tbMens .btn {
+    border:0 !important; background:none !important;
+    padding:.15rem .4rem; color:#8a94a0;
+  }
+  #tbMens .btn:hover { color:#0d6efd; }
+
+  .total-pago { font-size:2.4rem; font-weight:600; line-height:1.1; letter-spacing:-.02em; }
+  .bloque { border-top:1px solid #e9ecef; padding-top:1.25rem; margin-top:1.75rem; }
+
+  .modal-content { border:0; border-radius:.5rem; }
+  .modal-header, .modal-footer { border-color:#e9ecef; }
+</style>
+</head>
+<body>
+
+<!-- El menú lo escribe public/js/menu.js. -->
+<div class="sidebar">
+  <div class="sidebar-footer">
+    <a href="#" class="nav-link" id="btnLogout"><i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span></a>
+  </div>
+</div>
+
+<div class="main-content">
+
+  <nav class="navbar navbar-expand-lg navbar-light bg-white">
+    <div class="container-fluid">
+      <button class="btn btn-link sidebar-toggle"><i class="fas fa-bars"></i></button>
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <span class="nav-link small"><span id="userName">Usuario</span></span>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container py-5 lienzo">
+
+    <div class="d-flex align-items-end flex-wrap gap-3 mb-5">
+      <div>
+        <h4 class="mb-1">Planes</h4>
+        <div class="text-muted small">Clientes con puesto pago. No pasan por el cobro de entrada y salida.</div>
+      </div>
+      <button id="btnNueva" class="btn btn-primary ms-auto">Nuevo plan</button>
+    </div>
+
+    <!-- FILTROS -->
+    <div class="d-flex align-items-end flex-wrap gap-4 mb-4">
+      <div style="flex:1 1 18rem">
+        <div class="rotulo mb-1">Buscar</div>
+        <input id="q" type="text" class="form-control form-control-sm linea"
+               placeholder="Placa, titular o cédula">
+      </div>
+      <div style="width:11rem">
+        <div class="rotulo mb-1">Estado</div>
+        <select id="estado" class="form-select form-select-sm linea">
+          <option value="">Todos</option>
+          <option value="activa">Al día</option>
+          <option value="vencida">Vencidos</option>
+          <option value="cancelada">Cancelados</option>
+        </select>
+      </div>
+      <button id="btnBuscar" class="btn-texto pb-2">Buscar</button>
+    </div>
+
+    <!-- TABLA -->
+    <table class="table limpia mb-0">
+      <thead>
+        <tr>
+          <th>Placa</th>
+          <th>Titular</th>
+          <th>Paga</th>
+          <th>Desde</th>
+          <th>Hasta</th>
+          <th>Estado</th>
+          <th class="text-end">Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tbMens"></tbody>
+    </table>
+
+    <div class="d-flex justify-content-between align-items-center pt-3 mt-3"
+         style="border-top:1px solid #e9ecef">
+      <button class="btn-texto" id="btnPrev">Anterior</button>
+      <span class="small suave" id="pageInfo">Página 1</span>
+      <button class="btn-texto" id="btnNext">Siguiente</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- NUEVO / EDITAR PLAN -->
+<div class="modal fade" id="mensModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="mensModalTitle">Nuevo plan</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="mensForm">
+          <input type="hidden" id="id_mensualidad">
+
+          <!-- VEHÍCULO -->
+          <div class="titulo-seccion mb-3">Vehículo</div>
+          <div class="row g-4">
+            <div class="col-md-5">
+              <div class="rotulo mb-1">Placa</div>
+              <input type="text" id="placa" class="form-control linea text-uppercase"
+                     style="font-family:ui-monospace,Menlo,Consolas,monospace; font-size:1.4rem; letter-spacing:.08em"
+                     maxlength="10" autocomplete="off" placeholder="ABC123" required>
+            </div>
+            <div class="col-md-7">
+              <div class="rotulo mb-1">Tipo de vehículo</div>
+              <select id="id_tipo" class="form-select form-select-sm linea">
+                <option value="">Solo si el vehículo es nuevo</option>
+              </select>
+              <div class="eco">Si la placa ya está registrada, déjalo así.</div>
+            </div>
+          </div>
+
+          <!-- TITULAR -->
+          <div class="bloque">
+            <div class="titulo-seccion mb-3">Titular</div>
+            <div class="row g-4">
+              <div class="col-md-6">
+                <div class="rotulo mb-1">Nombre completo</div>
+                <input type="text" id="titular_nombre" class="form-control form-control-sm linea" required>
+              </div>
+              <div class="col-md-6">
+                <div class="rotulo mb-1">Cédula <span class="suave">(opcional)</span></div>
+                <input type="text" id="titular_documento" class="form-control form-control-sm linea">
+              </div>
+              <div class="col-md-6">
+                <div class="rotulo mb-1">Teléfono <span class="suave">(opcional)</span></div>
+                <input type="text" id="titular_telefono" class="form-control form-control-sm linea">
+              </div>
+              <div class="col-md-6">
+                <div class="rotulo mb-1">Correo <span class="suave">(opcional)</span></div>
+                <input type="email" id="titular_email" class="form-control form-control-sm linea">
+              </div>
+            </div>
+          </div>
+
+          <!-- PLAN -->
+          <div class="bloque">
+            <div class="titulo-seccion mb-3">Plan</div>
+            <div class="row g-4">
+              <div class="col-md-4">
+                <div class="rotulo mb-1">Cada cuánto paga</div>
+                <select id="periodicidad" class="form-select form-select-sm linea">
+                  <option value="dia">Por día</option>
+                  <option value="semana">Por semana</option>
+                  <option value="mes" selected>Por mes</option>
+                  <option value="anio">Por año</option>
+                  <option value="manual">Fechas a mano</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <div class="rotulo mb-1">Cuánto paga cada vez</div>
+                <div class="d-flex align-items-baseline gap-2">
+                  <span class="suave">$</span>
+                  <input type="number" min="0" step="1" id="valor_mensual"
+                         class="form-control linea" style="font-size:1.3rem; font-weight:600" required>
+                </div>
+                <div class="eco" id="ecoValor"></div>
+              </div>
+              <div class="col-md-4"></div>
+
+              <div class="col-md-4">
+                <div class="rotulo mb-1">Empieza el</div>
+                <input type="date" id="fecha_inicio" class="form-control form-control-sm linea" required>
+              </div>
+              <div class="col-md-4">
+                <div class="rotulo mb-1">Termina el <span class="suave">(opcional)</span></div>
+                <input type="date" id="fecha_fin" class="form-control form-control-sm linea">
+                <div class="eco" id="ecoPeriodo"></div>
+              </div>
+              <div class="col-md-4 d-flex align-items-end pb-1">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="auto_renovar" checked>
+                  <label class="form-check-label small" for="auto_renovar">Renovar sola al vencer</label>
+                </div>
+              </div>
+
+              <div class="col-12">
+                <div class="rotulo mb-1">Notas <span class="suave">(opcional)</span></div>
+                <textarea id="observaciones" class="form-control form-control-sm linea" rows="2"
+                          placeholder="Puesto asignado, acuerdos especiales…"></textarea>
+              </div>
+            </div>
+          </div>
+
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btnGuardar">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTRAR PAGO -->
+<div class="modal fade" id="pagoMensModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">Registrar pago</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="pagoMensForm">
+          <input type="hidden" id="pago_id_mensualidad">
+
+          <div class="mb-4">
+            <div class="rotulo mb-1">¿Cuántos meses paga?</div>
+            <div class="d-flex align-items-center gap-3">
+              <button class="btn-texto" type="button" id="btnMesMenos" style="font-size:1.4rem">−</button>
+              <input type="number" id="months" class="form-control linea text-center"
+                     style="width:5rem; font-size:1.4rem; font-weight:600" min="1" step="1" value="1">
+              <button class="btn-texto" type="button" id="btnMesMas" style="font-size:1.4rem">+</button>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <div class="rotulo mb-1">Queda cubierto</div>
+            <input type="text" id="periodo_label" class="form-control form-control-sm linea" disabled>
+          </div>
+
+          <div class="mb-4" style="border-top:1px solid #e9ecef; border-bottom:1px solid #e9ecef; padding:1.25rem 0">
+            <div class="rotulo">Total a recibir</div>
+            <div class="total-pago text-success" id="ecoMonto">$ 0</div>
+          </div>
+
+          <div class="row g-4">
+            <div class="col-md-6">
+              <div class="rotulo mb-1">Monto</div>
+              <div class="d-flex align-items-baseline gap-2">
+                <span class="suave">$</span>
+                <input type="number" id="monto" class="form-control form-control-sm linea" min="0" step="1" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="rotulo mb-1">Cómo paga</div>
+              <select id="metodo_pago" class="form-select form-select-sm linea">
+                <option value="efectivo">Efectivo</option>
+                <option value="tarjeta">Tarjeta</option>
+                <option value="transferencia">Transferencia</option>
+                <option value="QR">QR</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <div class="rotulo mb-1">Referencia <span class="suave">(opcional)</span></div>
+              <input type="text" id="referencia_pago" class="form-control form-control-sm linea"
+                     placeholder="Número de comprobante o transacción">
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success" id="btnRegPago">Registrar pago</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="position-fixed top-0 end-0 p-3" style="z-index:1100">
+  <div id="toastContainer"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../js/turnos.js"></script>
+<script src="../js/mensualidades.js"></script>
+<script src="../js/menu.js"></script>
+<script>
+/* Solo detalles de la vista. El guardado sigue en mensualidades.js.
+   La periodicidad no toca la base: se traduce a fecha_inicio / fecha_fin. */
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  function pesos(v) {
+    var n = Math.round(Number(v) || 0);
+    return '$ ' + n.toLocaleString('es-CO', { maximumFractionDigits: 0 });
+  }
+
+  var PERIODOS = {
+    dia:    { etiqueta:'al día',    sufijo:'por día' },
+    semana: { etiqueta:'a la semana', sufijo:'por semana' },
+    mes:    { etiqueta:'al mes',    sufijo:'por mes' },
+    anio:   { etiqueta:'al año',    sufijo:'por año' },
+    manual: { etiqueta:'',          sufijo:'' }
+  };
+
+  /* ---- placa en mayúscula ---- */
+  var placa = $('placa');
+  if (placa) placa.addEventListener('input', function () {
+    var pos = this.selectionStart;
+    this.value = this.value.toUpperCase();
+    this.setSelectionRange(pos, pos);
+  });
+
+  /* ---- periodicidad: calcula fecha_fin ---- */
+  var per = $('periodicidad'), ini = $('fecha_inicio'), fin = $('fecha_fin');
+  var ecoPeriodo = $('ecoPeriodo'), valor = $('valor_mensual'), ecoValor = $('ecoValor');
+
+  function sumar(fechaISO, tipo) {
+    if (!fechaISO) return '';
+    var p = fechaISO.split('-');
+    var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    if (tipo === 'dia')         d.setDate(d.getDate() + 1);
+    else if (tipo === 'semana') d.setDate(d.getDate() + 7);
+    else if (tipo === 'mes')    d.setMonth(d.getMonth() + 1);
+    else if (tipo === 'anio')   d.setFullYear(d.getFullYear() + 1);
+    else return '';
+    d.setDate(d.getDate() - 1);
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var dd = String(d.getDate()).padStart(2, '0');
+    return d.getFullYear() + '-' + mm + '-' + dd;
+  }
+
+  function refPeriodo(forzar) {
+    if (!per || !ini || !fin) return;
+    var tipo = per.value;
+
+    if (tipo === 'manual') {
+      fin.disabled = false;
+      ecoPeriodo.textContent = 'Escribe tú la fecha de fin.';
+    } else {
+      fin.disabled = true;
+      if (ini.value) {
+        var calc = sumar(ini.value, tipo);
+        if (forzar || !fin.value || fin.dataset.auto === '1') {
+          fin.value = calc;
+          fin.dataset.auto = '1';
+        }
+        ecoPeriodo.textContent = 'Cubre hasta el ' + (fin.value || '—') + '.';
+      } else {
+        ecoPeriodo.textContent = 'Escoge la fecha de inicio.';
+      }
+    }
+    refValor();
+  }
+
+  function refValor() {
+    if (!valor || !ecoValor) return;
+    var v = Number(valor.value) || 0;
+    var tipo = per ? per.value : 'mes';
+    var et = (PERIODOS[tipo] || PERIODOS.mes).etiqueta;
+    ecoValor.textContent = v > 0 ? pesos(v) + (et ? ' ' + et : '') : '';
+  }
+
+  if (per) per.addEventListener('change', function () { refPeriodo(true); });
+  if (ini) ini.addEventListener('change', function () { refPeriodo(true); });
+  if (fin) fin.addEventListener('input', function () { this.dataset.auto = '0'; });
+  if (valor) valor.addEventListener('input', refValor);
+
+  /* ---- eco del total en el modal de pago ---- */
+  var monto = $('monto'), ecoMonto = $('ecoMonto');
+  if (monto && ecoMonto) {
+    var refMonto = function () { ecoMonto.textContent = pesos(monto.value); };
+    monto.addEventListener('input', refMonto);
+    ['btnMesMas', 'btnMesMenos'].forEach(function (b) {
+      var el = $(b);
+      if (el) el.addEventListener('click', function () { setTimeout(refMonto, 60); });
+    });
+    var meses = $('months');
+    if (meses) meses.addEventListener('input', function () { setTimeout(refMonto, 60); });
+    var pm = $('pagoMensModal');
+    if (pm) pm.addEventListener('shown.bs.modal', refMonto);
+    refMonto();
+  }
+
+  /* ---- al abrir el modal del plan ---- */
+  var mm = $('mensModal');
+  if (mm) mm.addEventListener('shown.bs.modal', function () {
+    // si la fecha de fin vino de la base, se respeta y se pasa a modo manual
+    if (fin && fin.value && $('id_mensualidad').value) {
+      per.value = 'manual';
+      fin.dataset.auto = '0';
+    }
+    refPeriodo(false);
+    if (placa) placa.focus();
+  });
+
+  refPeriodo(false);
+})();
+</script>
+</body>
+</html>

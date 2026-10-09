@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Don Parqueo · Panel del dueño</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  body { font-family:'Poppins', sans-serif; background:#fff; }
+  .lienzo { max-width:1100px; }
+
+  .rotulo { font-size:.75rem; color:#8a94a0; text-transform:uppercase; letter-spacing:.04em; }
+  .titulo-seccion { font-size:.9rem; font-weight:600; color:#495057; }
+  .suave { color:#adb5bd; }
+  .vacio { padding:3rem 1rem; text-align:center; color:#adb5bd; }
+
+  .cifra { font-size:3rem; font-weight:600; line-height:1; letter-spacing:-.02em; }
+  .cifra-sub { font-size:.8rem; color:#adb5bd; margin-top:.35rem; }
+  .separador { border-left:1px solid #e9ecef; }
+  .linea-fina { border-top:1px solid #e9ecef; }
+
+  table.limpia { --bs-table-bg:transparent; }
+  table.limpia th {
+    font-weight:500; font-size:.75rem; color:#8a94a0;
+    text-transform:uppercase; letter-spacing:.04em;
+    border-bottom:1px solid #e9ecef; padding:0 .5rem .5rem 0;
+  }
+  table.limpia td {
+    padding:.8rem .5rem .8rem 0; border-bottom:1px solid #f5f6f8;
+    vertical-align:middle; font-size:.9rem;
+  }
+  table.limpia tr:last-child td { border-bottom:0; }
+
+  .punto { width:.5rem; height:.5rem; border-radius:50%; display:inline-block; margin-right:.4rem; }
+  .p-verde { background:#198754; }
+  .p-amar  { background:#ffc107; }
+  .p-rojo  { background:#dc3545; }
+  .p-gris  { background:#ced4da; }
+
+  .btn-texto { background:none; border:0; padding:0; color:#0d6efd; font-size:.85rem; }
+  .btn-texto:disabled { color:#ced4da; }
+  .btn-texto.peligro { color:#dc3545; }
+
+  .campo-linea {
+    border:0; border-bottom:1px solid #dee2e6; border-radius:0;
+    box-shadow:none; padding-left:0;
+  }
+  .campo-linea:focus { border-bottom-color:#0d6efd; box-shadow:none; }
+
+  .avisos { position:fixed; top:1rem; right:1rem; z-index:1080; width:22rem; max-width:calc(100vw - 2rem); }
+  .modal-content { border:0; border-radius:.5rem; }
+  .modal-header, .modal-footer { border-color:#e9ecef; }
+
+  #puerta { max-width:20rem; margin:18vh auto; }
+
+  @media (max-width: 767px){
+    .separador { border-left:0; border-top:1px solid #e9ecef; padding-top:1rem; margin-top:1rem; }
+    .cifra { font-size:2.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="avisos" id="avisos"></div>
+
+<!-- PUERTA -->
+<div id="puerta">
+  <h5 class="mb-1">Panel del dueño</h5>
+  <div class="small suave mb-4">Administración de los parqueaderos suscritos.</div>
+
+  <div class="rotulo mb-1">Clave</div>
+  <input type="password" class="form-control campo-linea mb-4" id="clave" autocomplete="off">
+  <button class="btn btn-primary w-100" id="btnEntrar">Entrar</button>
+  <div class="small text-danger mt-3 d-none" id="errorClave"></div>
+</div>
+
+<!-- PANEL -->
+<div class="container lienzo py-5 d-none" id="panel">
+
+  <div class="d-flex align-items-start flex-wrap gap-3 mb-5">
+    <div>
+      <h4 class="mb-1">Panel del dueño</h4>
+      <div class="text-muted small" id="fechaHoy"></div>
+          <div class="ms-auto d-flex align-items-center gap-4">
+        <button class="btn btn-primary btn-sm" id="btnNuevo">Nuevo parqueadero</button>
+        <button class="btn-texto" id="btnSalir">Salir</button>
+      </div>
+
+  <!-- CIFRAS -->
+  <div class="row mb-5">
+    <div class="col-md-4 mb-4 mb-md-0">
+      <div class="rotulo">Parqueaderos activos</div>
+      <div class="cifra" id="cActivas">–</div>
+      <div class="cifra-sub" id="subActivas">&nbsp;</div>
+    </div>
+    <div class="col-md-4 separador mb-4 mb-md-0">
+      <div class="ps-md-4">
+        <div class="rotulo">Cupos libres</div>
+        <div class="cifra" id="cCupos">–</div>
+        <div class="cifra-sub" id="subCupos">&nbsp;</div>
+      </div>
+    </div>
+    <div class="col-md-4 separador">
+      <div class="ps-md-4">
+        <div class="rotulo">Por cobrar</div>
+        <div class="cifra text-danger" id="cVencidas">–</div>
+        <div class="cifra-sub" id="subVencidas">&nbsp;</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="titulo-seccion mb-3">Clientes</div>
+  <div id="zonaTabla"><div class="vacio">Cargando…</div></div>
+
+</div>
+
+<!-- RENOVAR -->
+<div class="modal fade" id="modalRenovar" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header"><h6 class="modal-title">Renovar</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="small suave mb-4" id="renovarQuien"></div>
+
+        <div class="rotulo mb-2">¿Por cuántos meses?</div>
+        <div class="d-flex gap-2 mb-4">
+          <button class="btn btn-outline-secondary btn-sm flex-fill mes" data-m="1">1</button>
+          <button class="btn btn-outline-secondary btn-sm flex-fill mes" data-m="3">3</button>
+          <button class="btn btn-outline-secondary btn-sm flex-fill mes" data-m="6">6</button>
+          <button class="btn btn-outline-secondary btn-sm flex-fill mes" data-m="12">12</button>
+        </div>
+
+        <div class="small suave" id="renovarEco"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary" id="btnConfirmarRenovar" disabled>Renovar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FECHA A MANO -->
+<div class="modal fade" id="modalFecha" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header"><h6 class="modal-title">Cambiar vencimiento</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="small suave mb-4" id="fechaQuien"></div>
+        <div class="rotulo mb-1">Vence el</div>
+        <input type="date" class="form-control campo-linea mb-3" id="nuevaFecha">
+        <div class="small suave">Déjalo vacío para quitar el vencimiento.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary" id="btnGuardarFecha">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+    <!-- NUEVO PARQUEADERO -->
+<div class="modal fade" id="modalNuevo" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h6 class="modal-title">Nuevo parqueadero</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+
+      <div class="modal-body">
+        <div class="rotulo mb-1">Nombre del parqueadero</div>
+        <input class="form-control campo-linea mb-4" id="nNombre" autocomplete="off">
+
+        <div class="row g-4 mb-4">
+          <div class="col-md-6">
+            <div class="rotulo mb-1">NIT</div>
+            <input class="form-control campo-linea" id="nNit" autocomplete="off" placeholder="900123456-7">
+          </div>
+          <div class="col-md-6">
+            <div class="rotulo mb-1">Teléfono</div>
+            <input class="form-control campo-linea" id="nTelefono" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="rotulo mb-1">Dirección <span class="text-lowercase suave">(opcional)</span></div>
+        <input class="form-control campo-linea mb-4" id="nDireccion" autocomplete="off">
+
+        <div class="rotulo mb-1">Correo <span class="text-lowercase suave">(opcional)</span></div>
+        <input type="email" class="form-control campo-linea mb-4" id="nEmail" autocomplete="off">
+
+        <div class="pt-4 mt-4 linea-fina">
+          <div class="titulo-seccion mb-1">Con qué va a entrar</div>
+          <div class="small suave mb-4">Estos son los datos que le entregas al cliente.</div>
+
+          <div class="row g-4 mb-4">
+            <div class="col-md-6">
+              <div class="rotulo mb-1">Usuario</div>
+              <input class="form-control campo-linea" id="nUsuario" autocomplete="off" placeholder="admin">
+            </div>
+            <div class="col-md-6">
+              <div class="rotulo mb-1">Contraseña</div>
+              <input class="form-control campo-linea" id="nPassword" autocomplete="off">
+            </div>
+          </div>
+
+          <div class="rotulo mb-2">Meses pagados</div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm flex-fill mesn" data-m="1">1</button>
+            <button class="btn btn-outline-secondary btn-sm flex-fill mesn active" data-m="3">3</button>
+            <button class="btn btn-outline-secondary btn-sm flex-fill mesn" data-m="6">6</button>
+            <button class="btn btn-outline-secondary btn-sm flex-fill mesn" data-m="12">12</button>
+          </div>
+        </div>
+
+        <div class="small suave mt-4">
+          Se crean solos: la configuración, el usuario administrador y los tipos
+          Carro, Moto y Bicicleta con sus tarifas. El cliente los ajusta después.
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary" id="btnCrear">Crear parqueadero</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DATOS DE ENTREGA -->
+<div class="modal fade" id="modalEntrega" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-body py-4">
+        <div class="rotulo mb-3">Listo. Entrégale esto al cliente</div>
+        <div id="cuerpoEntrega"></div>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button class="btn-texto me-4" id="btnCopiar">Copiar</button>
+        <button class="btn btn-primary btn-sm" data-bs-dismiss="modal">Listo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ============================================================
+   Panel del dueño del SaaS.
+
+   No usa el login de las empresas. La clave viaja en el header
+   x-admin-key y se guarda en sessionStorage, que se borra al cerrar
+   la pestaña. No va en localStorage a proposito: esta clave abre
+   TODOS los parqueaderos y no debe quedar guardada en el equipo.
+   ============================================================ */
+const $ = id => document.getElementById(id);
+
+let CLAVE = sessionStorage.getItem('ps_dueno') || null;
+let EMPRESAS = [];
+let SEL = null, MESES = null;
+
+function pesos(v){
+  return '$ ' + (Math.round(Number(v) || 0)).toLocaleString('es-CO', { maximumFractionDigits:0 });
+}
+function fechaLegible(iso){
+  if(!iso) return 'Sin vencimiento';
+  const d = new Date(iso);
+  if(isNaN(d)) return String(iso);
+  return d.toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric', timeZone:'UTC' });
+}
+function escapar(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g,
+    m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function avisar(tipo, texto){
+  const clase = { ok:'success', error:'danger', alerta:'warning' }[tipo] || 'secondary';
+  const el = document.createElement('div');
+  el.className = `alert alert-${clase} alert-dismissible py-2 border-0`;
+  el.innerHTML = `<div class="small">${escapar(texto)}</div>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+  $('avisos').appendChild(el);
+  setTimeout(() => el.remove(), tipo==='error' ? 9000 : 4000);
+}
+
+async function api(url, opciones = {}){
+  const headers = {
+    'Accept':'application/json',
+    'x-admin-key': CLAVE || '',
+    ...(opciones.headers||{})
+  };
+  if(opciones.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+
+  let res, cuerpo;
+  try{
+    res = await fetch(url, { ...opciones, headers });
+    const crudo = await res.text();
+    try { cuerpo = crudo ? JSON.parse(crudo) : {}; } catch { cuerpo = { message: crudo }; }
+  }catch(e){ throw new Error('Sin conexión con el servidor.'); }
+
+  if(res.status === 401){
+    // La clave dejo de servir. Se borra y se vuelve a la puerta.
+    sessionStorage.removeItem('ps_dueno');
+    CLAVE = null;
+    mostrarPuerta();
+    throw new Error('La clave ya no sirve. Vuelve a entrar.');
+  }
+  if(!res.ok) throw new Error(cuerpo.message || ('El servidor respondió ' + res.status));
+  return cuerpo;
+}
+
+/* ---------- puerta ---------- */
+function mostrarPuerta(){
+  $('puerta').classList.remove('d-none');
+  $('panel').classList.add('d-none');
+}
+function mostrarPanel(){
+  $('puerta').classList.add('d-none');
+  $('panel').classList.remove('d-none');
+  $('fechaHoy').textContent = new Date().toLocaleDateString('es-CO',
+    { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  cargar();
+}
+
+async function entrar(clave){
+  const err = $('errorClave');
+  err.classList.add('d-none');
+
+  const btn = $('btnEntrar');
+  btn.disabled = true; btn.textContent = 'Entrando…';
+  try{
+    const r = await fetch('/api/dueno/entrar', {
+      method:'POST',
+      headers: { 'Content-Type':'application/json', 'x-admin-key': clave },
+      body: '{}'
+    });
+    const j = await r.json().catch(() => ({}));
+    if(!r.ok) throw new Error(j.message || 'No se pudo entrar');
+
+    CLAVE = clave;
+    sessionStorage.setItem('ps_dueno', clave);
+    mostrarPanel();
+  }catch(e){
+    err.textContent = e.message;
+    err.classList.remove('d-none');
+    $('clave').value = '';
+    $('clave').focus();
+  }finally{
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+}
+
+$('btnEntrar').addEventListener('click', () => {
+  const c = $('clave').value.trim();
+  if(!c) return;
+  entrar(c);
+});
+$('clave').addEventListener('keydown', e => { if(e.key === 'Enter') $('btnEntrar').click(); });
+
+$('btnSalir').addEventListener('click', () => {
+  sessionStorage.removeItem('ps_dueno');
+  CLAVE = null;
+  $('clave').value = '';
+  mostrarPuerta();
+});
+
+/* ---------- carga ---------- */
+async function cargar(){
+  const zona = $('zonaTabla');
+  try{
+    const r = await api('/api/dueno/empresas');
+    EMPRESAS = r.data || [];
+    pintarCifras(r.resumen || {});
+    pintarTabla();
+  }catch(e){
+    zona.innerHTML = '<div class="vacio text-danger">' + escapar(e.message) + '</div>';
+  }
+}
+
+function pintarCifras(res){
+  $('cActivas').textContent = res.activas ?? '–';
+  $('subActivas').textContent = (res.total || 0) + ' en total';
+
+  $('cCupos').textContent = res.cupos_libres ?? '–';
+  $('subCupos').textContent = 'De ' + (res.tope || 15) + ' que aguanta el plan actual';
+
+  const vencidas = EMPRESAS.filter(e => e.estado === 'vencida' || e.estado === 'gracia').length;
+  $('cVencidas').textContent = vencidas;
+  $('subVencidas').textContent = vencidas === 0
+    ? 'Todos al día'
+    : (vencidas === 1 ? 'Un parqueadero vencido' : vencidas + ' parqueaderos vencidos');
+}
+
+const ETIQUETAS = {
+  sin_fecha : { punto:'p-gris',  texto:'Sin vencimiento' },
+  al_dia    : { punto:'p-verde', texto:'Al día' },
+  por_vencer: { punto:'p-amar',  texto:'Por vencer' },
+  gracia    : { punto:'p-amar',  texto:'Vencido, en gracia' },
+  vencida   : { punto:'p-rojo',  texto:'Suspendido' }
+};
+
+function pintarTabla(){
+  const zona = $('zonaTabla');
+
+  if(!EMPRESAS.length){
+    zona.innerHTML = '<div class="vacio">Todavía no hay parqueaderos registrados.</div>';
+    return;
+  }
+
+  zona.innerHTML =
+    '<div class="table-responsive"><table class="table limpia mb-0">' +
+      '<thead><tr>' +
+        '<th>Parqueadero</th><th>NIT</th><th>Estado</th>' +
+        '<th>Vence</th><th>Movimientos 30d</th><th class="text-end">Acciones</th>' +
+      '</tr></thead><tbody>' +
+      EMPRESAS.map(e => {
+        const et = ETIQUETAS[e.estado] || ETIQUETAS.sin_fecha;
+
+        let detalle = '';
+        if(e.estado === 'por_vencer' && e.dias_restantes != null){
+          const d = Number(e.dias_restantes);
+          detalle = d === 0 ? 'Vence hoy' : 'Faltan ' + d + (d === 1 ? ' día' : ' días');
+        }else if((e.estado === 'gracia' || e.estado === 'vencida') && e.dias_restantes != null){
+          const d = Math.abs(Number(e.dias_restantes));
+          detalle = 'Hace ' + d + (d === 1 ? ' día' : ' días');
+        }
+
+        return '<tr>' +
+          '<td>' +
+            '<div>' + escapar(e.nombre) + (e.activa ? '' : ' <span class="small text-danger">apagado</span>') + '</div>' +
+            '<div class="small suave">' + escapar(e.telefono || e.email || '') + '</div>' +
+          '</td>' +
+          '<td class="suave">' + escapar(e.nit) + '</td>' +
+          '<td>' +
+            '<span class="punto ' + et.punto + '"></span>' + et.texto +
+            (detalle ? '<div class="small suave">' + detalle + '</div>' : '') +
+          '</td>' +
+          '<td class="suave">' + fechaLegible(e.fecha_vencimiento) + '</td>' +
+          '<td class="suave">' + (e.movimientos_30d || 0) + '</td>' +
+          '<td class="text-end text-nowrap">' +
+            '<button class="btn-texto me-3 acc-renovar" data-id="' + e.id_empresa + '">Renovar</button>' +
+            '<button class="btn-texto me-3 acc-fecha" data-id="' + e.id_empresa + '">Fecha</button>' +
+            '<button class="btn-texto ' + (e.activa ? 'peligro' : '') + ' acc-estado" ' +
+                    'data-id="' + e.id_empresa + '">' +
+              (e.activa ? 'Apagar' : 'Encender') +
+            '</button>' +
+          '</td>' +
+        '</tr>';
+      }).join('') +
+    '</tbody></table></div>';
+
+  zona.querySelectorAll('.acc-renovar').forEach(b =>
+    b.addEventListener('click', () => abrirRenovar(b.dataset.id)));
+  zona.querySelectorAll('.acc-fecha').forEach(b =>
+    b.addEventListener('click', () => abrirFecha(b.dataset.id)));
+  zona.querySelectorAll('.acc-estado').forEach(b =>
+    b.addEventListener('click', () => cambiarEstado(b.dataset.id)));
+}
+
+function empresaDe(id){
+  return EMPRESAS.find(e => String(e.id_empresa) === String(id));
+}
+
+/* ---------- renovar ---------- */
+function abrirRenovar(id){
+  const e = empresaDe(id);
+  if(!e) return;
+  SEL = id; MESES = null;
+
+  $('renovarQuien').textContent = e.nombre + ' · vence ' + fechaLegible(e.fecha_vencimiento).toLowerCase();
+  $('renovarEco').textContent = '';
+  $('btnConfirmarRenovar').disabled = true;
+  document.querySelectorAll('.mes').forEach(b => b.classList.remove('active'));
+
+  bootstrap.Modal.getOrCreateInstance($('modalRenovar')).show();
+}
+
+document.querySelectorAll('.mes').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.mes').forEach(o => o.classList.remove('active'));
+    b.classList.add('active');
+    MESES = Number(b.dataset.m);
+    $('btnConfirmarRenovar').disabled = false;
+
+    // Se muestra hasta cuando quedaria, contando desde el vencimiento actual
+    // si todavia no ha pasado. Asi renovar antes no le quita dias al cliente.
+    const e = empresaDe(SEL);
+    const base = e && e.fecha_vencimiento ? new Date(e.fecha_vencimiento) : new Date();
+    const hoy = new Date();
+    const desde = base > hoy ? base : hoy;
+    const hasta = new Date(desde);
+    hasta.setMonth(hasta.getMonth() + MESES);
+    $('renovarEco').textContent = 'Quedaría hasta el ' +
+      hasta.toLocaleDateString('es-CO', { day:'2-digit', month:'long', year:'numeric' }) + '.';
+  });
+});
+
+$('btnConfirmarRenovar').addEventListener('click', async () => {
+  if(!SEL || !MESES) return;
+  const btn = $('btnConfirmarRenovar');
+  btn.disabled = true; btn.textContent = 'Renovando…';
+  try{
+    const r = await api('/api/dueno/empresas/' + SEL + '/renovar', {
+      method:'POST', body: JSON.stringify({ meses: MESES })
+    });
+    bootstrap.Modal.getInstance($('modalRenovar')).hide();
+    avisar('ok', r.message + '. Vence ' + fechaLegible(r.fecha_vencimiento).toLowerCase() + '.');
+    await cargar();
+  }catch(e){ avisar('error', e.message); }
+  finally{ btn.disabled = false; btn.textContent = 'Renovar'; }
+});
+
+/* ---------- fecha a mano ---------- */
+function abrirFecha(id){
+  const e = empresaDe(id);
+  if(!e) return;
+  SEL = id;
+
+  $('fechaQuien').textContent = e.nombre;
+  $('nuevaFecha').value = e.fecha_vencimiento
+    ? String(e.fecha_vencimiento).slice(0,10) : '';
+
+  bootstrap.Modal.getOrCreateInstance($('modalFecha')).show();
+}
+
+$('btnGuardarFecha').addEventListener('click', async () => {
+  if(!SEL) return;
+  const btn = $('btnGuardarFecha');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    await api('/api/dueno/empresas/' + SEL, {
+      method:'PUT',
+      body: JSON.stringify({ fecha_vencimiento: $('nuevaFecha').value || null })
+    });
+    bootstrap.Modal.getInstance($('modalFecha')).hide();
+    avisar('ok','Vencimiento actualizado.');
+    await cargar();
+  }catch(e){ avisar('error', e.message); }
+  finally{ btn.disabled = false; btn.textContent = 'Guardar'; }
+});
+
+/* ---------- apagar / encender ---------- */
+async function cambiarEstado(id){
+  const e = empresaDe(id);
+  if(!e) return;
+
+  const apagar = !!e.activa;
+  const texto = apagar
+    ? '¿Apagar ' + e.nombre + '? Nadie de ese parqueadero va a poder entrar.'
+    : '¿Encender ' + e.nombre + '?';
+  if(!confirm(texto)) return;
+
+  try{
+    await api('/api/dueno/empresas/' + id, {
+      method:'PUT', body: JSON.stringify({ activa: !apagar })
+    });
+    avisar('ok', apagar ? 'Parqueadero apagado.' : 'Parqueadero encendido.');
+    await cargar();
+  }catch(err){ avisar('error', err.message); }
+}
+  /* ---------- nuevo parqueadero ---------- */
+let MESES_NUEVO = 3;
+
+$('btnNuevo').addEventListener('click', () => {
+  ['nNombre','nNit','nTelefono','nDireccion','nEmail','nUsuario','nPassword']
+    .forEach(id => $(id).value = '');
+  $('nUsuario').value = 'admin';
+
+  MESES_NUEVO = 3;
+  document.querySelectorAll('.mesn').forEach(b =>
+    b.classList.toggle('active', b.dataset.m === '3'));
+
+  bootstrap.Modal.getOrCreateInstance($('modalNuevo')).show();
+});
+
+document.querySelectorAll('.mesn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.mesn').forEach(o => o.classList.remove('active'));
+    b.classList.add('active');
+    MESES_NUEVO = Number(b.dataset.m);
+  });
+});
+
+$('btnCrear').addEventListener('click', async () => {
+  const datos = {
+    nombre:    $('nNombre').value.trim(),
+    nit:       $('nNit').value.trim(),
+    telefono:  $('nTelefono').value.trim(),
+    direccion: $('nDireccion').value.trim(),
+    email:     $('nEmail').value.trim(),
+    usuario:   $('nUsuario').value.trim(),
+    password:  $('nPassword').value,
+    meses:     MESES_NUEVO
+  };
+
+  if(!datos.nombre) return avisar('alerta','Ponle nombre al parqueadero.');
+  if(!datos.nit)    return avisar('alerta','Falta el NIT. Con eso entra el cliente.');
+  if(!datos.usuario || !datos.password)
+    return avisar('alerta','Hay que crearle usuario y contraseña.');
+  if(datos.password.length < 6)
+    return avisar('alerta','La contraseña necesita al menos 6 caracteres.');
+
+  const btn = $('btnCrear');
+  btn.disabled = true; btn.textContent = 'Creando…';
+  try{
+    await api('/api/dueno/empresas', { method:'POST', body: JSON.stringify(datos) });
+    bootstrap.Modal.getInstance($('modalNuevo')).hide();
+
+    // Los datos de entrada se muestran UNA vez. La contraseña queda encriptada
+    // en la base y no se puede volver a ver: si no se copia ahora, toca
+    // cambiarla desde la pantalla de Usuarios del propio cliente.
+    const texto =
+      'Don Parqueo\n' +
+      window.location.origin + '\n\n' +
+      'NIT: ' + datos.nit + '\n' +
+      'Usuario: ' + datos.usuario + '\n' +
+      'Contraseña: ' + datos.password;
+
+    $('cuerpoEntrega').innerHTML =
+      '<div class="small suave mb-3">' + escapar(datos.nombre) + '</div>' +
+      '<table class="table limpia mb-3"><tbody>' +
+        '<tr><td class="suave">Entra por</td><td>' + escapar(window.location.origin) + '</td></tr>' +
+        '<tr><td class="suave">NIT</td><td>' + escapar(datos.nit) + '</td></tr>' +
+        '<tr><td class="suave">Usuario</td><td>' + escapar(datos.usuario) + '</td></tr>' +
+        '<tr><td class="suave">Contraseña</td><td>' + escapar(datos.password) + '</td></tr>' +
+      '</tbody></table>' +
+      '<div class="small text-danger">La contraseña no se puede volver a ver. Cópiala ahora.</div>';
+
+    $('btnCopiar').onclick = function(){
+      navigator.clipboard.writeText(texto)
+        .then(() => avisar('ok','Copiado.'))
+        .catch(() => avisar('alerta','No se pudo copiar. Anótalo a mano.'));
+    };
+
+    bootstrap.Modal.getOrCreateInstance($('modalEntrega')).show();
+    await cargar();
+  }catch(e){ avisar('error', e.message); }
+  finally{ btn.disabled = false; btn.textContent = 'Crear parqueadero'; }
+});
+
+/* ---------- arranque ---------- */
+if(CLAVE) mostrarPanel();
+else { mostrarPuerta(); $('clave').focus(); }
+</script>
+</body>
+</html>
