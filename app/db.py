@@ -22,7 +22,7 @@ log = logging.getLogger("db")
 pool = ConnectionPool(
     config.DATABASE_URL,
     min_size=1,
-    max_size=10,
+    max_size=5,  # el plan gratis de Aiven permite 20 conexiones en total
     open=False,
     kwargs={"row_factory": dict_row, "prepare_threshold": None},
 )

@@ -66,6 +66,7 @@ for r in (auth.router, usuarios.router, empresa.router, vehiculos.router, tipos_
 @app.get("/api/salud", tags=["salud"])
 def salud():
     """Para el ping que mantiene despierto el servicio en el plan gratuito."""
+    db.uno("SELECT 1")  # toca la base para que no se apague por inactividad
     return {"success": True, "message": "ok"}
 
 
