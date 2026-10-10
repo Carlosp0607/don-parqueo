@@ -169,7 +169,7 @@
     return '' +
       '<div class="sidebar-header">' +
         '<div class="logo-container">' +
-          '<div class="logo-circle"><span class="logo-text">PS</span></div>' +
+          '<div class="logo-circle"><span class="logo-text">DP</span></div>' +
         '</div>' +
         '<h5 class="mt-3 text-white">Don Parqueo</h5>' +
       '</div>' +
